@@ -1,0 +1,21 @@
+phase: phase-2-small-train
+purpose: first real end-to-end training run of Arm C (blt_entropy_patching_syllable_seeded), debug scale
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-c-debug
+kernel_version: 1
+config_used: experiments/pillar1_patch_encoder/configs/1_3_arm_C_blt_syllable.yaml
+overrides: "model.max_seq_len=128 train.batch_size=4 train.max_steps=30 train.entropy_pretrain_steps=20"
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.05 GB streamed (same params/target as Arm B debug run)
+tokenizer: vislm.tokenizers.blt_patch_encoder (raw bytes) + vislm/tokenizers/syllable_seed.py
+model_params: 4545728
+latent_params: 3670464
+device: cuda (Tesla P100-PCIE-16GB)
+duration_per_step_s: ~0.094 (vs Arm B's ~0.256 at the same size - not slower despite
+                        extra boundaries, likely smaller avg patch padding offsets it)
+compare_against: runs/2026_09_13_train_arm_b_debug_kaggle_gpu_v2_optimized (Arm B, same
+                  model size/steps/data target)
+note: Arm C converged to a LOWER loss than Arm B at the same step count (3.645 vs 3.955
+      final, 3.630 vs 3.917 min) - consistent with the 1.2a/1.2b finding (entropy peaks
+      ~90%+ overlap with syllable boundaries) suggesting syllable-seeding gives useful
+      structure beyond pure entropy. Only 30 steps / 50MB - a signal, not a conclusion;
+      needs a longer, larger, repeated (seed-varied) run before treating as confirmed.

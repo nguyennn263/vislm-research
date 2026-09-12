@@ -123,12 +123,31 @@ nhanh hơn **~6.4 lần**. Xem `runs/2026_09_13_train_arm_b_debug_kaggle_gpu_v2_
 bước) khoảng 3.8 lần — vòng lặp Python theo từng SEQUENCE trong batch (không phải từng
 patch nữa) vẫn còn, là bước tối ưu tiếp theo nếu cần.
 
+## Arm C — đã train thật trên Kaggle, so trực tiếp với Arm B
+Cùng model size (4.55M tham số, latent 3.67M), cùng số bước (30), cùng dung lượng data
+mục tiêu (50MB) với Arm B — xem `runs/2026_09_13_train_arm_c_debug_kaggle_gpu/`.
+
+| | Arm B (entropy thuần) | Arm C (entropy + mồi âm tiết) |
+|---|---|---|
+| Loss đầu | 5.608 | 5.620 |
+| Loss cuối (bước 30) | 3.955 | **3.645** |
+| Loss thấp nhất | 3.917 | **3.630** |
+| Tốc độ/bước (P100) | ~0.256s | ~0.094s |
+
+**Arm C hội tụ thấp hơn Arm B rõ rệt ở cùng số bước** — khớp với phát hiện ở 1.2a/1.2b
+(Phase 1: đỉnh entropy trùng ranh giới âm tiết ~90%+), gợi ý mồi âm tiết cho patch cấu
+trúc hữu ích hơn chỉ dựa entropy. **Đây mới là tín hiệu ở quy mô debug (30 bước/50MB,
+1 seed), chưa phải kết luận** — cần chạy dài hơn, nhiều seed hơn, data lớn hơn trước khi
+coi là xác nhận cho câu hỏi con 1.3.
+
 ## Trạng thái
-Arm A đã chạy ở 2 quy mô (debug 300 bước, và scaled 2000 bước/0.5GB). Arm B đã
-compute-matched với Arm A (~1.06-1.14x FLOPs/byte) và đã tối ưu tốc độ decoder — cần
-rerun debug trên Kaggle để xác nhận tốc độ mới + loss với size đã chỉnh (đang chạy).
-Arm C viết xong, đã test local, chưa test trên Kaggle. Còn lại trước khi so sánh 1.3 có
-kết luận: (1) quét lại `entropy_threshold` ở scale training thật (số hiện tại đo trên
-mẫu nhỏ, rất nhạy), (2) chạy đủ 3 arm cùng số bước/cùng data để so sánh thật, (3) cân
+Cả 3 arm (A, B, C) đã viết xong và train thật được trên Kaggle GPU, compute-matched
+(~1.06-1.14x FLOPs/byte giữa B/C và A), decoder Arm B/C đã tối ưu tốc độ (~6.4x). Kết
+quả debug-scale đầu tiên cho câu hỏi con 1.3: Arm C > Arm B (loss thấp hơn) ở cùng điều
+kiện — tín hiệu ủng hộ giả thuyết mồi âm tiết, chưa phải kết luận cuối. Còn lại trước khi
+kết luận thật: (1) quét lại `entropy_threshold` ở scale training thật (số hiện tại đo
+trên mẫu nhỏ, rất nhạy), (2) chạy dài hơn/nhiều seed hơn để loại nhiễu ngẫu nhiên, (3)
+chưa có Arm A ở đúng cùng quy mô 30-bước/50MB để so 3 arm cùng lúc (Arm A mới có ở 300
+bước/50MB và 2000 bước/0.5GB — cần thêm 1 run 30 bước để so sánh công bằng), (4) cân
 nhắc vector hoá luôn vòng lặp theo sequence nếu cần scale lớn hơn debug. 2.1/2.2 (Trụ
 cột 2 — backbone SSM) chưa viết code.
