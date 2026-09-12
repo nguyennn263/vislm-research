@@ -1,0 +1,41 @@
+phase: phase-2-small-train
+purpose: scale-up run (Arm B), 5000 steps / 0.3GB, entropy_pretrain_steps=500
+compute: kaggle (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b-5000
+kernel_version: 1
+model_params: 4668608
+latent_params: 3744192
+device: cuda (Tesla P100-PCIE-16GB)
+duration_per_step_s: ~0.226 (4990 steps in 1127.7s) - notably faster than the 500-step
+                        run's ~0.817s/step, likely because longer entropy pretraining
+                        (500 vs 100 steps) produced a more confident model -> fewer/
+                        longer patches -> smaller padded decoder batch per step
+val_loss_bits_per_byte_curve:
+  step_500: 3.596
+  step_1000: 3.430
+  step_1500: 3.344
+  step_2000: 3.276
+  step_2500: 3.280
+  step_3000: 3.214
+  step_3500: 3.198
+  step_4000: 3.164
+  step_4500: 3.155
+bpb_ratio_B_over_A_curve:
+  step_500: 1.829
+  step_1000: 1.979
+  step_1500: 2.035
+  step_2000: 2.048
+  step_2500: 2.108
+  step_3000: 2.093
+  step_3500: 2.112
+  step_4000: 2.115
+  step_4500: 2.125
+note: "IMPORTANT finding: the B/A bits-per-byte ratio is WIDENING (1.83x -> 2.13x) as
+      training progresses, not narrowing - opposite of the naive 'byte-level catches up
+      with more compute' expectation. Both arms are still improving in absolute terms,
+      Arm A just improves faster in this window. Could mean: (1) the crossover BLT's
+      own paper reports needs much larger scale than reached here, (2) this repo's
+      scoped-down BLT (mean-pool encoder, simple decoder) underperforms a full
+      implementation, (3) shared LR/warmup isn't tuned for BLT specifically, (4)
+      entropy_threshold=3.7 still not well-tuned. Not resolved - see
+      phases/phase-2-small-train.md."

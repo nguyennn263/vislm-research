@@ -1,0 +1,35 @@
+architecture: blt_entropy_patching
+arm: B
+compute: rtx24gb_ssh
+dataset: /kaggle/working/data/prepared/fineweb2_vi
+dataset_target_gb: 0.05
+entropy_model:
+  d_model: 128
+  n_heads: 4
+  n_layers: 4
+model:
+  d_model: 192
+  max_seq_len: 512
+  n_heads: 6
+  n_layers: 6
+patching:
+  entropy_threshold: 3.7
+  max_patch_len: 16
+phase: phase-2-small-train
+resume_from: null
+run_dir: /kaggle/working/runs/arm_B_5000
+seed: 42
+status: chưa chạy
+tokenizer: vislm.tokenizers.blt_patch_encoder
+train:
+  batch_size: 8
+  entropy_pretrain_steps: 500
+  eval_every: 500
+  eval_steps: 20
+  grad_clip: 1.0
+  lr: 0.0003
+  max_steps: 5000
+  min_lr: 3.0e-05
+  save_every: 1000
+  val_fraction: 0.05
+  warmup_steps: 200

@@ -1,0 +1,20 @@
+phase: phase-2-small-train
+purpose: scale-up run (Arm A), 5000 steps / 0.3GB, using new checkpoint/LR-schedule/eval infra
+compute: kaggle (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-a-5000
+kernel_version: 1
+model_params: 10113024
+device: cuda (Tesla P100-PCIE-16GB)
+duration_per_step_s: ~0.0688 (4990 steps in 342.8s)
+val_loss_bits_per_byte_curve:
+  step_500: 1.966
+  step_1000: 1.733
+  step_1500: 1.643
+  step_2000: 1.600
+  step_2500: 1.556
+  step_3000: 1.536
+  step_3500: 1.515
+  step_4000: 1.496
+  step_4500: 1.485
+note: converted from val_loss (nats/token) via /ln(2)/bytes_per_token(5.06). Still
+      decreasing at step 4500, not plateaued.
