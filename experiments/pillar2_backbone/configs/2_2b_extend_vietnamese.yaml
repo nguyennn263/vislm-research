@@ -2,7 +2,7 @@
 # (only run after 2_2a matches published numbers - plans/PLAN.md, Tru cot 2)
 phase: phase-2-small-train
 status: chưa chạy
-compute: rtx24gb_ssh
+compute: rtx24gb_ssh  # override: compute=kaggle_debug dataset_target_gb=0.05 (see vislm/args.py)
 recipe: same_as_2_2a  # phải giữ nguyên pipeline đã tái lập được ở 2_2a
 teacher_model: null  # TODO: checkpoint Transformer tiếng Việt có sẵn
 dataset: data/prepared/fineweb2_vi

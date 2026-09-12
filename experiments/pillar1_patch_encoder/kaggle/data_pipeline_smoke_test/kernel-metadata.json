@@ -1,0 +1,14 @@
+{
+  "id": "nguyennn263/vislm-data-pipeline-smoke-test",
+  "title": "vislm-data-pipeline-smoke-test",
+  "code_file": "data_pipeline_smoke_test.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

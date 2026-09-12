@@ -1,0 +1,8 @@
+phase: phase-2-small-train
+purpose: data pipeline + Arm A tokenizer smoke test (compute=kaggle_debug scale, before RTX 24GB)
+compute: kaggle (CPU)
+kernel: nguyennn263/vislm-data-pipeline-smoke-test
+kernel_version: 1
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn (streaming)
+dataset_target_gb: 0.05
+tokenizer: vinai/PhoGPT-4B

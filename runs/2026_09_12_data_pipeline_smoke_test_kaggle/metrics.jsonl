@@ -1,0 +1,1 @@
+{"section": "data_pipeline_smoke_test", "results": {"n_docs": 7421, "total_bytes": 49712151, "total_tokens": 9823258, "bytes_per_token": 5.060658184891408, "mean_doc_tokens": 1323.710820644118, "median_doc_tokens": 731}}

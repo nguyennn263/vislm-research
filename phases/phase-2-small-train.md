@@ -24,6 +24,23 @@ A/B/C — script đã test chạy thật (streaming, không tải nguyên 130GB)
 tiêu (`--target-gb`) và số FLOPs/tham số cụ thể vẫn để `null` trong config — chốt khi
 biết rõ thời gian/compute thực tế trên máy RTX 24GB.
 
+## Config động: test nhỏ trên Kaggle trước khi chạy full trên RTX 24GB
+Mọi config trong `configs/` đều có `compute: rtx24gb_ssh` là giá trị mặc định cho lần
+chạy đầy đủ, nhưng không hard-code — `vislm/args.py` cho phép override qua dot-list
+CLI (kiểu Meta Lingua), VD:
+```
+python train.py configs/1_3_arm_A_bpe.yaml compute=kaggle_debug dataset_target_gb=0.05
+```
+Cùng 1 file config chạy được cả bản debug nhỏ (Kaggle, vài chục MB) lẫn bản đầy đủ
+(RTX 24GB) — chỉ khác giá trị override, không cần sửa tay hay tạo file riêng.
+
+**Đã smoke-test:** stream 50MB từ FineWeb2 tiếng Việt trên Kaggle + tokenize bằng
+tokenizer Arm A (PhoGPT-4B) — xem
+`runs/2026_09_12_data_pipeline_smoke_test_kaggle/metrics.jsonl`. Kết quả: 7.421 tài
+liệu, ~49.7MB text → 9.82M token (~5.06 byte/token), độ dài tài liệu trung vị 731 token.
+Xác nhận pipeline tải + tokenize chạy đúng trước khi tốn compute RTX 24GB cho job đầy đủ.
+
 ## Trạng thái
-Hạ tầng dữ liệu (script prep + config cho 1.3, 2.1, 2.2) đã dựng xong và test chạy được.
-Chưa chạy training thật — chờ SSH máy RTX 24GB.
+Hạ tầng dữ liệu (script prep + config cho 1.3, 2.1, 2.2) đã dựng xong, test chạy được
+cả ở quy mô nhỏ trên Kaggle. Chưa chạy training thật (cần model Arm A/B/C, hiện mới có
+tokenizer Arm A — backbone/BLT model code chưa viết) — chờ SSH máy RTX 24GB.
