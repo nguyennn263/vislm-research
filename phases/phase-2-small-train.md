@@ -140,14 +140,47 @@ trúc hữu ích hơn chỉ dựa entropy. **Đây mới là tín hiệu ở quy
 1 seed), chưa phải kết luận** — cần chạy dài hơn, nhiều seed hơn, data lớn hơn trước khi
 coi là xác nhận cho câu hỏi con 1.3.
 
+## So sánh công bằng cả 3 arm ở quy mô lớn hơn (500 bước / 0.2GB, cùng config đầy đủ)
+Cùng `max_seq_len=512, batch_size=8` (không dùng override debug nữa), cùng
+`dataset_target_gb=0.2`, cùng 500 bước — xem `runs/2026_09_13_train_arm_{a,b,c}_500_kaggle_gpu/`.
+Loss thô KHÔNG so được trực tiếp giữa Arm A (vocab PhoGPT 20480) và Arm B/C (vocab byte
+256) — đã quy đổi hết về **bits/byte** (loss ÷ ln 2, và với Arm A chia thêm cho
+~5.06 byte/token đo ở Phase 1):
+
+| | Arm A (BPE) | Arm B (entropy thuần) | Arm C (entropy + mồi âm tiết) |
+|---|---|---|---|
+| bits/byte (TB 20 bước cuối) | **2.054** | 3.583 | 3.375 |
+| bits/byte thấp nhất | **1.858** | 3.123 | 2.770 |
+| Tốc độ/bước (P100) | **~0.068s** | ~0.817s | ~0.399s |
+
+**Xếp hạng bits/byte: A < C < B** (thấp hơn = tốt hơn). Arm A vẫn dẫn đầu rõ rệt ở quy mô
+này — tokenizer PhoGPT được pretrain sẵn trên corpus khổng lồ cho nó lợi thế khởi đầu lớn
+mà 1 model byte-level học từ đầu chưa bắt kịp trong 500 bước. Nhưng **trong nhóm
+byte-level, Arm C vẫn nhất quán tốt hơn Arm B** (đúng ở cả 30 bước lẫn 500 bước) — tín
+hiệu mồi âm tiết hữu ích được củng cố thêm, không phải ngẫu nhiên của lần chạy debug.
+Arm C cũng nhanh hơn Arm B ở quy mô này (~0.399s vs ~0.817s/bước).
+
+**Sự cố kỹ thuật gặp phải:** Arm C 500-bước fail 3 lần liên tiếp với lỗi
+`FileNotFoundError` trước khi chạy đúng ở lần thứ 4 — hoá ra Kaggle mount Kaggle Dataset
+KHÔNG NHẤT QUÁN giữa các lần chạy (có lúc `/kaggle/input/<slug>/`, có lúc thêm tầng
+`/kaggle/input/datasets/<owner>/<slug>/`). Đã sửa notebook để tự detect path lúc chạy
+(xem code trong `train_arm_c_500/`) thay vì hard-code — cần áp dụng cách này cho mọi
+notebook Kaggle mới sau này.
+
 ## Trạng thái
-Cả 3 arm (A, B, C) đã viết xong và train thật được trên Kaggle GPU, compute-matched
-(~1.06-1.14x FLOPs/byte giữa B/C và A), decoder Arm B/C đã tối ưu tốc độ (~6.4x). Kết
-quả debug-scale đầu tiên cho câu hỏi con 1.3: Arm C > Arm B (loss thấp hơn) ở cùng điều
-kiện — tín hiệu ủng hộ giả thuyết mồi âm tiết, chưa phải kết luận cuối. Còn lại trước khi
-kết luận thật: (1) quét lại `entropy_threshold` ở scale training thật (số hiện tại đo
-trên mẫu nhỏ, rất nhạy), (2) chạy dài hơn/nhiều seed hơn để loại nhiễu ngẫu nhiên, (3)
-chưa có Arm A ở đúng cùng quy mô 30-bước/50MB để so 3 arm cùng lúc (Arm A mới có ở 300
-bước/50MB và 2000 bước/0.5GB — cần thêm 1 run 30 bước để so sánh công bằng), (4) cân
-nhắc vector hoá luôn vòng lặp theo sequence nếu cần scale lớn hơn debug. 2.1/2.2 (Trụ
-cột 2 — backbone SSM) chưa viết code.
+Cả 3 arm (A, B, C) đã viết xong, compute-matched (~1.06-1.14x FLOPs/byte giữa B/C và A),
+decoder Arm B/C đã tối ưu tốc độ (~6.4x), và đã train thật ở 2 quy mô (debug 30 bước và
+500 bước, cùng điều kiện, cùng data target) trên Kaggle GPU. **Tín hiệu nhất quán qua cả
+2 quy mô cho câu hỏi con 1.3: trong nhóm byte-level, Arm C (mồi âm tiết) > Arm B (entropy
+thuần); nhưng cả hai đều thua Arm A (BPE) ở giai đoạn training ngắn này** — khớp hướng
+với 1.2a/1.2b
+(entropy trùng ranh giới âm tiết ~90%+) cho phần B-vs-C, nhưng A-vs-{B,C} cho thấy BPE có
+lợi thế lớn ở quy mô nhỏ (chưa rõ có giữ khi scale lên nhiều hơn, đây là đúng câu hỏi mà
+BLT paper trả lời ở scale lớn hơn nhiều). Còn thiếu trước khi kết luận thật cho 1.3: (1)
+quét lại `entropy_threshold` ở scale training thật (số hiện tại đo trên mẫu nhỏ, rất
+nhạy), (2) chạy dài hơn/nhiều seed hơn/data lớn hơn để xem A-vs-{B,C} có đổi chiều không
+khi byte-level "bắt kịp" (đúng như BLT paper claim ở scale lớn), (3) vector hoá luôn vòng
+lặp theo sequence nếu cần scale lớn hơn nữa, (4) áp dụng cách detect CODE_DIR động cho
+mọi notebook Kaggle cũ (train_arm_a_debug, train_arm_b_debug, train_arm_c_debug,
+data_pipeline_smoke_test) trước khi rerun chúng — hiện chỉ mới sửa cho các notebook 500
+bước. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
