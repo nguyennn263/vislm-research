@@ -1,0 +1,20 @@
+phase: phase-2-small-train
+purpose: first real end-to-end training run of Arm B (blt_entropy_patching), debug scale
+compute: kaggle_debug (GPU, P100, torch pinned to 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b-debug
+kernel_version: 1
+config_used: experiments/pillar1_patch_encoder/configs/1_3_arm_B_blt.yaml
+overrides: "model.max_seq_len=128 train.batch_size=4 train.max_steps=30 train.entropy_pretrain_steps=20"
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.05 GB streamed
+tokenizer: vislm.tokenizers.blt_patch_encoder (raw bytes)
+model_params: 7358464
+latent_params: 6483200
+entropy_pretrain_final_loss: 4.1238
+device: cuda (Tesla P100-PCIE-16GB)
+duration_per_step_s: ~1.63 (vs ~0.067 for Arm A on the same GPU - per-patch Python loop
+                        overhead, see vislm/backbones/models/blt_lm.py docstring)
+note: latent_params 6.48M vs Arm A's 10.1M despite same d_model/n_layers/n_heads - Arm A's
+      count is dominated by its large vocab embedding table (PhoGPT vocab_size=20480),
+      Arm B only needs a byte table (256). Structural BPE-vs-byte-level difference, not a
+      config bug - FLOPs (not raw param count) is the right compute-matching unit here,
+      per plans/PLAN.md's variable-isolation principle. Not yet measured/matched.

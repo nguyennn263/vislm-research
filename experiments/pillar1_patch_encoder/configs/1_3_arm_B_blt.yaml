@@ -20,9 +20,12 @@ entropy_model:
 patching:
   entropy_threshold: 1.5  # TODO: chưa tune, cần quét theo phân phối entropy thật trên data
   max_patch_len: 16
-# LƯU Ý: num_latent_params (in ra khi train.py chạy) hiện > Arm A vì entropy model +
-# local encoder/decoder cộng thêm tham số — chưa compute-matched thật sự, cần giảm
-# d_model/n_layers ở đây hoặc tăng ở Arm A để khớp trước khi so sánh kết quả nghiêm túc.
+# LƯU Ý: đo thật trên Kaggle (runs/2026_09_13_train_arm_b_debug_kaggle_gpu/) cho thấy
+# latent_params Arm B (~6.5M) THẤP hơn tổng params Arm A (~10.1M) dù cùng d_model/n_layers/
+# n_heads — vì Arm A có bảng embedding từ vựng lớn (vocab_size PhoGPT = 20480, chiếm phần
+# lớn tham số), còn Arm B chỉ cần bảng byte (256). Đây là khác biệt CẤU TRÚC giữa BPE và
+# byte-level, không phải lỗi config — nên so theo FLOPs (đúng nguyên tắc cô lập biến số
+# trong plans/PLAN.md), không chỉ đếm tham số thô. Chưa đo/khớp FLOPs thật giữa 2 arm.
 train:
   lr: 0.0003
   batch_size: 8

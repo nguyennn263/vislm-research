@@ -68,8 +68,36 @@ gần như giống hệt (6.956 GPU vs 6.956 CPU). Xem
 `runs/2026_09_12_train_arm_a_debug_kaggle_gpu/` (so với bản CPU
 `runs/2026_09_12_train_arm_a_debug_kaggle/`).
 
+## Arm B/C (BLT) — đã viết và train thật trên Kaggle
+`vislm/backbones/modules/entropy_model.py` (byte LM nhỏ, train ngắn rồi freeze, dùng để
+tính entropy) + `patching.py` (ranh giới patch theo ngưỡng entropy toàn cục — kiểu đơn
+giản hơn trong 2 kiểu patching của paper BLT) + `vislm/backbones/models/blt_lm.py`
+(local encoder mean-pool → latent transformer causal theo patch → local decoder tự hồi
+quy trong patch). Đây là bản **rút gọn có chủ đích**, không phải port nguyên code
+facebookresearch/blt: local encoder dùng mean-pool thay vì cross-attention, xử lý patch
+bằng vòng lặp Python theo từng sequence thay vì ragged-batch vector hoá — đã ghi rõ trong
+docstring của `blt_lm.py`. Arm C = Arm B + `vislm/tokenizers/syllable_seed.py` (thêm ranh
+giới patch ngay sau mỗi byte khoảng trắng, cộng dồn chứ không thay thế ranh giới entropy).
+
+**Đã train thật Arm B trên Kaggle (GPU P100 + torch 2.7.1):** 30 bước debug, model
+7.36M tham số (latent 6.48M), loss giảm từ 5.552 (≈ ln(256), đúng random-init cho vocab
+byte) xuống 3.82 (min 3.71) — học thật, đúng đầu-cuối. Xem
+`runs/2026_09_13_train_arm_b_debug_kaggle_gpu/`. Arm C đã test local (forward+backward
+đúng), chưa chạy debug thật trên Kaggle.
+
+**Chưa compute-matched Arm A vs B/C:** latent_params Arm B (6.48M) THẤP hơn Arm A (10.1M)
+dù cùng d_model/n_layers/n_heads — vì Arm A có bảng embedding từ vựng PhoGPT (20480 mục,
+chiếm phần lớn tham số Arm A), Arm B chỉ cần bảng byte (256 mục). Đây là khác biệt CẤU
+TRÚC giữa BPE và byte-level, không phải lỗi cấu hình — nguyên tắc cô lập biến số trong
+PLAN.md đòi hỏi so theo **FLOPs**, không phải đếm tham số thô — chưa đo/khớp FLOPs thật.
+
+**Hiệu năng Arm B chậm hơn nhiều so với Arm A** (cùng GPU): ~1.63s/bước so với ~0.067s/bước
+của Arm A — do vòng lặp Python theo từng patch (điểm rút gọn nói trên), không phải lỗi. Cần
+tối ưu (vector hoá theo batch) trước khi chạy ở quy mô lớn hơn debug.
+
 ## Trạng thái
-Arm A (tokenizer + model `TransformerLM` + trainer config-driven) đã viết xong và train
-thật được (dù chỉ CPU trên Kaggle). Arm B/C (BLT thuần + BLT mồi âm tiết) **chưa viết** —
-đây là phần phức tạp hơn nhiều (entropy model + dynamic patching + local/global
-transformer), chưa bắt đầu. 2.1/2.2 (Trụ cột 2 - backbone SSM) cũng chưa viết code.
+Arm A, Arm B đã viết xong + train thật được trên Kaggle GPU. Arm C viết xong, đã test
+local, chưa test debug trên Kaggle. Còn thiếu trước khi so sánh 1.3 có ý nghĩa: (1) đo
+FLOPs thật và chỉnh cấu hình để compute-matched giữa 3 arm, (2) tối ưu tốc độ Arm B/C nếu
+muốn chạy quy mô lớn hơn debug, (3) quét `entropy_threshold` (đang để tạm 1.5, chưa tune).
+2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
