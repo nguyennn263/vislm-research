@@ -190,20 +190,59 @@ KHÔNG NHẤT QUÁN giữa các lần chạy (có lúc `/kaggle/input/<slug>/`, 
 (xem code trong `train_arm_c_500/`) thay vì hard-code — cần áp dụng cách này cho mọi
 notebook Kaggle mới sau này.
 
+## Scale-up 5.000 bước / 0.3GB — dùng hạ tầng checkpoint/resume/LR-schedule/eval mới
+Cùng model size, cùng data (0.3GB), `entropy_pretrain_steps=500` (tăng từ 100), dùng
+**val_loss** (đo trên phần data giữ riêng, không train) thay vì train loss — đáng tin
+hơn nhiều cho việc so xu hướng. Xem
+`runs/2026_09_13_train_arm_{a,b,c}_5000_kaggle_gpu/`.
+
+| bước | A (bpb) | B (bpb) | C (bpb) | B/A | C/A | C/B |
+|---|---|---|---|---|---|---|
+| 500 | 1.966 | 3.596 | 3.292 | 1.829 | 1.674 | 0.915 |
+| 1000 | 1.733 | 3.430 | 3.168 | 1.979 | 1.828 | 0.924 |
+| 2000 | 1.600 | 3.276 | 3.092 | 2.048 | 1.933 | 0.944 |
+| 3000 | 1.536 | 3.214 | 3.060 | 2.093 | 1.993 | 0.952 |
+| 4000 | 1.496 | 3.164 | 3.017 | 2.115 | 2.017 | 0.953 |
+| 4500 | 1.485 | 3.155 | 3.016 | 2.125 | 2.031 | 0.956 |
+
+**Phát hiện quan trọng, đi ngược kỳ vọng ban đầu:**
+1. **Khoảng cách A vs {B,C} GIÃN RA theo thời gian train, không thu hẹp** (B/A: 1.83x→2.13x,
+   C/A: 1.67x→2.03x). Cả 3 arm đều cải thiện tuyệt đối, nhưng Arm A cải thiện nhanh hơn
+   trong cửa sổ 5.000 bước này — giả thuyết "byte-level bắt kịp BPE khi có thêm compute"
+   **chưa** thấy xảy ra ở scale này. Có thể do: (a) điểm giao cắt thật sự cần scale lớn
+   hơn nhiều (đúng như paper BLT report), (b) bản BLT rút gọn ở đây (mean-pool encoder,
+   decoder đơn giản) yếu hơn bản đầy đủ, (c) dùng chung LR/warmup cho cả 2 kiến trúc khác
+   nhau có thể không tối ưu cho BLT, (d) `entropy_threshold=3.7` vẫn chưa tune kỹ.
+2. **Khoảng cách C vs B (tỷ lệ C/B) lại THU HẸP dần về phía 1.0** (0.915→0.956) — Arm C
+   vẫn luôn tốt hơn Arm B suốt quá trình, nhưng lợi thế tương đối giảm dần khi train lâu
+   hơn. Cách đọc hợp lý: mồi âm tiết cho model 1 "điểm khởi đầu" tốt hơn, nhưng model có
+   thể tự học cấu trúc tương đương từ entropy khi có đủ thời gian train — nghĩa là mồi âm
+   tiết giúp **hội tụ nhanh hơn ở giai đoạn đầu**, chưa chắc giúp **giá trị hội tụ cuối
+   cùng khác biệt nhiều** nếu train đủ lâu (chưa xác nhận được, cần train tới khi cả 2
+   plateau thật sự).
+3. **Tốc độ Arm B vs C đảo chiều so với lần 500-bước:** ở 5.000 bước, Arm C
+   (~0.450s/bước) chậm hơn Arm B (~0.226s/bước) — ngược với lúc 500 bước (C nhanh hơn B).
+   Lý do hợp lý: entropy model được pretrain lâu hơn (500 bước) khiến Arm B tự nhiên tạo
+   patch dài hơn (ít điểm cắt hơn) khi đã học tốt, còn Arm C vẫn bị ép cắt tại mọi khoảng
+   trắng bất kể entropy nói gì → patch ngắn hơn, nhiều patch hơn mỗi sequence → chậm hơn.
+   Đây là hệ quả kiến trúc thật, không phải lỗi.
+
 ## Trạng thái
 Cả 3 arm (A, B, C) đã viết xong, compute-matched (~1.06-1.14x FLOPs/byte giữa B/C và A),
-decoder Arm B/C đã tối ưu tốc độ (~6.4x), và đã train thật ở 2 quy mô (debug 30 bước và
-500 bước, cùng điều kiện, cùng data target) trên Kaggle GPU. **Tín hiệu nhất quán qua cả
-2 quy mô cho câu hỏi con 1.3: trong nhóm byte-level, Arm C (mồi âm tiết) > Arm B (entropy
-thuần); nhưng cả hai đều thua Arm A (BPE) ở giai đoạn training ngắn này** — khớp hướng
-với 1.2a/1.2b
-(entropy trùng ranh giới âm tiết ~90%+) cho phần B-vs-C, nhưng A-vs-{B,C} cho thấy BPE có
-lợi thế lớn ở quy mô nhỏ (chưa rõ có giữ khi scale lên nhiều hơn, đây là đúng câu hỏi mà
-BLT paper trả lời ở scale lớn hơn nhiều). Còn thiếu trước khi kết luận thật cho 1.3: (1)
-quét lại `entropy_threshold` ở scale training thật (số hiện tại đo trên mẫu nhỏ, rất
-nhạy), (2) chạy dài hơn/nhiều seed hơn/data lớn hơn để xem A-vs-{B,C} có đổi chiều không
-khi byte-level "bắt kịp" (đúng như BLT paper claim ở scale lớn), (3) vector hoá luôn vòng
-lặp theo sequence nếu cần scale lớn hơn nữa, (4) áp dụng cách detect CODE_DIR động cho
-mọi notebook Kaggle cũ (train_arm_a_debug, train_arm_b_debug, train_arm_c_debug,
-data_pipeline_smoke_test) trước khi rerun chúng — hiện chỉ mới sửa cho các notebook 500
-bước. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
+decoder Arm B/C đã tối ưu tốc độ (~6.4x ở scale debug), có checkpoint/resume/LR-schedule/
+eval, và đã train thật ở 3 quy mô tăng dần (30 bước, 500 bước, 5.000 bước) trên Kaggle
+GPU, cùng điều kiện mỗi lần. **Kết luận tạm thời cho câu hỏi con 1.3 (chưa phải cuối
+cùng):** ở quy mô hiện tại (model vài triệu tham số, tối đa 5.000 bước), BPE (Arm A) vẫn
+vượt trội byte-level (B, C) và khoảng cách CHƯA có dấu hiệu thu hẹp — trái với kỳ vọng
+"byte-level bắt kịp khi train lâu hơn". Trong nhóm byte-level, mồi âm tiết (Arm C) luôn
+tốt hơn entropy thuần (Arm B), nhưng lợi thế đó cũng đang thu hẹp dần.
+
+Còn thiếu trước khi kết luận thật cho 1.3: (1) quét lại `entropy_threshold` một cách hệ
+thống (chưa làm dù đã 3 lần train) — hiện vẫn dùng giá trị đo thô ban đầu; (2) chạy tới
+khi loss thật sự plateau (5.000 bước cả 3 arm vẫn đang giảm, chưa hội tụ) để biết xu
+hướng có đảo chiều ở phạm vi xa hơn không, hoặc chấp nhận kết luận "ở scale nhỏ BPE thắng"
+là câu trả lời hợp lệ cho 1.3 (không phải mọi RQ đều cần "thắng" — biết BPE thắng ở scale
+nhỏ cũng là kết luận có giá trị); (3) thử LR/warmup riêng cho BLT thay vì dùng chung với
+Arm A; (4) nhiều seed hơn để chắc chắn xu hướng không phải nhiễu; (5) áp dụng cách detect
+CODE_DIR động cho các notebook Kaggle cũ hơn (train_arm_{a,b,c}_debug,
+data_pipeline_smoke_test) nếu cần rerun. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
