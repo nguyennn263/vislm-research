@@ -1,0 +1,14 @@
+phase: phase-2-small-train
+purpose: same as 2026_09_12_train_arm_a_debug_kaggle but with real GPU (P100) instead of CPU fallback
+compute: kaggle_debug (GPU, P100, torch pinned to 2.7.1+cu126 - last version with sm_60 support)
+kernel: nguyennn263/vislm-train-arm-a-debug
+kernel_version: 4
+code_dataset: nguyennn263/vislm-research-code
+config_used: experiments/pillar1_patch_encoder/configs/1_3_arm_A_bpe.yaml
+overrides: "dataset=/kaggle/working/data/prepared/fineweb2_vi run_dir=... train.max_steps=300"
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.05 GB streamed
+tokenizer: vinai/PhoGPT-4B
+model_params: 10113024
+device: cuda (Tesla P100-PCIE-16GB)
+duration_wall_clock_s_300_steps: ~20 (vs ~730s on CPU fallback - ~33x speedup)
+compare_against: runs/2026_09_12_train_arm_a_debug_kaggle (CPU fallback run, same seed)

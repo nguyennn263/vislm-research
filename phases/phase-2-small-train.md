@@ -55,12 +55,18 @@ nữa, mà chạy trọn `vislm/train.py` 300 bước trên 50MB FineWeb2 + toke
 (≈ ln(20480), đúng random-init cho vocab PhoGPT) xuống dao động 6.6–7.6 — xác nhận có
 học thật, pipeline train hoạt động đúng đầu-cuối.
 
-**Vấn đề GPU cần bạn quyết định:** Kaggle cấp GPU P100 (sm_60), nhưng torch bản mới
-không còn hỗ trợ sm_60 → `vislm/train.py` tự phát hiện lỗi này (`pick_device()`) và rơi
-về CPU thay vì crash. Chạy được nhưng **chậm** (300 bước, model 10M tham số ≈ 12 phút
-trên CPU). Muốn train "full" thật trên Kaggle với tốc độ GPU cần ghim torch bản cũ hơn hỗ
-trợ sm_60 (đánh đổi: torch cũ hơn, ít tính năng mới hơn) — chưa làm, để bạn quyết định có
-cần không hay chấp nhận CPU cho tới khi có máy RTX 24GB.
+**Đã fix GPU:** Kaggle cấp GPU P100 (sm_60), torch bản mới nhất (Kaggle ship 2.10+cu128)
+đã bỏ hỗ trợ sm_60 (Pascal, bỏ từ torch 2.8 trở đi). Notebook giờ tự phát hiện P100 qua
+`nvidia-smi` và CHỈ khi đó mới ghim `torch==2.7.1+cu126` (bản mới nhất còn hỗ trợ sm_60)
+— nếu Kaggle cấp GPU khác (T4/A100) thì giữ nguyên torch mới nhất sẵn có, không đánh đổi
+gì cả. `vislm/train.py`'s `pick_device()` vẫn giữ làm lưới an toàn cuối (rơi về CPU nếu
+lỡ vẫn gặp GPU không tương thích).
+
+**Kết quả:** cùng seed, cùng config — chạy GPU (P100 + torch 2.7.1) chỉ mất **~20 giây**
+cho 300 bước, so với **~730 giây (12 phút) trên CPU** — nhanh hơn **~33 lần**, loss cuối
+gần như giống hệt (6.956 GPU vs 6.956 CPU). Xem
+`runs/2026_09_12_train_arm_a_debug_kaggle_gpu/` (so với bản CPU
+`runs/2026_09_12_train_arm_a_debug_kaggle/`).
 
 ## Trạng thái
 Arm A (tokenizer + model `TransformerLM` + trainer config-driven) đã viết xong và train
