@@ -6,7 +6,8 @@ arm: C
 tokenizer: vislm.tokenizers.syllable_seed  # cắm thêm vào blt_patch_encoder (Arm B)
 architecture: blt_entropy_patching_syllable_seeded
 # Biến số cố định giữa Arm A/B/C — PHẢI giống hệt 1_3_arm_A_bpe.yaml / 1_3_arm_B_blt.yaml:
-dataset: data/prepared/pillar1/pretrain_corpus_vi
+dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
+dataset_target_gb: null
 total_flops: null
 latent_transformer_params: null
 seed: 42

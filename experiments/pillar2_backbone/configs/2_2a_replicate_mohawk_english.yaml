@@ -1,0 +1,10 @@
+# Question 2.2a - replicate MOHAWK/MambaInLlama on the ORIGINAL English setup first
+# (mandatory sanity check before 2_2b - plans/PLAN.md, Tru cot 2)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+recipe: MOHAWK  # hoặc MambaInLlama - xem plans/PLAN.md mục tài liệu tham khảo Trụ cột 2
+teacher_model: null  # TODO: model + dữ liệu ĐÚNG như tác giả gốc dùng (VD Phi-1.5), không phải tiếng Việt
+dataset: null  # TODO: dữ liệu tiếng Anh gốc của recipe, KHÔNG dùng fineweb2_vi ở bước này
+target_metric: "khớp con số công bố gốc trong paper"
+output: runs/pillar2_2_2a/

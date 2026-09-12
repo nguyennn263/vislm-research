@@ -6,7 +6,8 @@ arm: B
 tokenizer: vislm.tokenizers.blt_patch_encoder
 architecture: blt_entropy_patching  # đúng kiến trúc gốc facebookresearch/blt, không mồi âm tiết
 # Biến số cố định giữa Arm A/B/C — PHẢI giống hệt 1_3_arm_A_bpe.yaml:
-dataset: data/prepared/pillar1/pretrain_corpus_vi
+dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
+dataset_target_gb: null
 total_flops: null
 latent_transformer_params: null
 seed: 42

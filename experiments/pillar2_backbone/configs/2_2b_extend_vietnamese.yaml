@@ -1,0 +1,11 @@
+# Question 2.2b - extend the SAME recipe validated in 2_2a to a Vietnamese checkpoint
+# (only run after 2_2a matches published numbers - plans/PLAN.md, Tru cot 2)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+recipe: same_as_2_2a  # phải giữ nguyên pipeline đã tái lập được ở 2_2a
+teacher_model: null  # TODO: checkpoint Transformer tiếng Việt có sẵn
+dataset: data/prepared/fineweb2_vi
+dataset_target_gb: null  # TODO
+compare_against: 2_2a_replicate_mohawk_english  # so đường cong phục hồi hiệu năng theo số bước fine-tune
+output: runs/pillar2_2_2b/

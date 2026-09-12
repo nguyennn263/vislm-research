@@ -6,7 +6,8 @@ arm: A
 tokenizer: vislm.tokenizers.bpe_baseline
 architecture: transformer_standard
 # Biến số cố định giữa Arm A/B/C — KHÔNG được đổi khi so sánh (nguyên tắc cô lập biến số, plans/PLAN.md):
-dataset: data/prepared/pillar1/pretrain_corpus_vi  # TODO: chốt corpus cụ thể trước khi chạy
+dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
+dataset_target_gb: null  # TODO: chốt dung lượng theo compute/thời gian thật có trên máy RTX 24GB
 total_flops: null       # TODO: chốt số FLOPs mục tiêu, giữ giống hệt Arm B/C
 latent_transformer_params: null  # TODO
 seed: 42

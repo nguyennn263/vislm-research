@@ -15,5 +15,15 @@ Phase 1 phải có kết luận rõ ràng cho 1.1/1.2 (đạt hoặc không đ�
 ## Compute
 Máy RTX 24GB (SSH) cho toàn bộ job train thật. Kaggle chỉ dùng để debug pipeline ở quy mô cực nhỏ trước khi chạy job đầy đủ trên máy 24GB (tránh tốn giờ máy riêng cho lỗi cài đặt).
 
+## Dữ liệu
+Corpus pretraining đã chốt: **FineWeb2 tiếng Việt** (`HuggingFaceFW/fineweb-2`, config
+`vie_Latn` — ~61M dòng, ~130GB text thô, streaming trên HF). `setup/download_prepare_data.py`
+stream + subsample thành shard `.jsonl` trong `data/prepared/fineweb2_vi/`, tính theo
+dung lượng byte thô (không theo tokenizer cụ thể) để dùng chung, công bằng giữa Arm
+A/B/C — script đã test chạy thật (streaming, không tải nguyên 130GB). Dung lượng mục
+tiêu (`--target-gb`) và số FLOPs/tham số cụ thể vẫn để `null` trong config — chốt khi
+biết rõ thời gian/compute thực tế trên máy RTX 24GB.
+
 ## Trạng thái
-Chưa bắt đầu — chờ Phase 1.
+Hạ tầng dữ liệu (script prep + config cho 1.3, 2.1, 2.2) đã dựng xong và test chạy được.
+Chưa chạy training thật — chờ SSH máy RTX 24GB.

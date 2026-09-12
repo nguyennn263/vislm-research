@@ -4,3 +4,5 @@ pyyaml
 transformers
 tokenizers
 sentencepiece
+# Phase 2 data prep (streaming, không cần train) — setup/download_prepare_data.py
+datasets

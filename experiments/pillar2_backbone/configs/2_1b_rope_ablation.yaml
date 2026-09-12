@@ -1,0 +1,11 @@
+# Question 2.1b - isolate RoPE as a confound in the 2.1a ratio sweep (plans/PLAN.md, Tru cot 2)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+dataset: data/prepared/fineweb2_vi
+dataset_target_gb: null  # TODO, phải giống 2_1a
+fixed_ratio: null  # TODO: chọn 1 tỷ lệ SSM:Attention cố định từ 2_1a để test riêng RoPE
+arms: [with_rope, without_rope]  # chỉ đổi đúng 1 biến so với nhau
+eval: evals/needle_in_haystack_vi.py
+seed: 42
+output: runs/pillar2_2_1b/

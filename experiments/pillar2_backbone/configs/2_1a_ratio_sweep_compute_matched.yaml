@@ -1,0 +1,12 @@
+# Question 2.1a - compute-matched SSM:Attention ratio sweep (plans/PLAN.md, Tru cot 2)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn
+dataset_target_gb: null  # TODO
+total_flops: null  # TODO: giữ giống hệt qua mọi tỷ lệ trong sweep
+total_params: null  # TODO: giữ giống hệt qua mọi tỷ lệ (tăng width SSM khi giảm layer attention)
+ratios_to_sweep: []  # TODO: VD [0, 0.25, 0.5, 0.75, 1.0] (0 = SSM thuần, 1 = Transformer thuần)
+eval: evals/needle_in_haystack_vi.py
+seed: 42
+output: runs/pillar2_2_1a/
