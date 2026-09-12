@@ -1,0 +1,14 @@
+phase: phase-2-small-train
+purpose: first real end-to-end training run of Arm A (transformer_standard), debug scale
+compute: kaggle_debug (GPU requested, P100 sm_60 incompatible with current torch, auto
+         fell back to CPU via vislm.train.pick_device)
+kernel: nguyennn263/vislm-train-arm-a-debug
+kernel_version: 3
+code_dataset: nguyennn263/vislm-research-code (mounted at
+              /kaggle/input/datasets/nguyennn263/vislm-research-code)
+config_used: experiments/pillar1_patch_encoder/configs/1_3_arm_A_bpe.yaml
+overrides: "dataset=/kaggle/working/data/prepared/fineweb2_vi run_dir=... train.max_steps=300"
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.05 GB streamed
+tokenizer: vinai/PhoGPT-4B
+model_params: 10113024
+duration_wall_clock_s: ~730 (300 steps on CPU, ~2.2s/step)

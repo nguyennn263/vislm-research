@@ -4,11 +4,20 @@ status: chưa chạy
 compute: rtx24gb_ssh  # override: compute=kaggle_debug dataset_target_gb=0.05 (see vislm/args.py)
 arm: A
 tokenizer: vislm.tokenizers.bpe_baseline
+tokenizer_name: vinai/PhoGPT-4B  # on Kaggle pin transformers==4.46.3, see vislm/tokenizers/bpe_baseline.py
 architecture: transformer_standard
 # Biến số cố định giữa Arm A/B/C — KHÔNG được đổi khi so sánh (nguyên tắc cô lập biến số, plans/PLAN.md):
 dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
-dataset_target_gb: null  # TODO: chốt dung lượng theo compute/thời gian thật có trên máy RTX 24GB
-total_flops: null       # TODO: chốt số FLOPs mục tiêu, giữ giống hệt Arm B/C
-latent_transformer_params: null  # TODO
+dataset_target_gb: 0.05  # debug scale; override lên GB thật khi chạy full trên RTX 24GB
+model:
+  d_model: 256
+  n_layers: 6
+  n_heads: 8
+  max_seq_len: 512
+# Arm B/C phải khớp num_params (in ra khi train.py chạy) với Arm A khi implement xong
+train:
+  lr: 0.0003
+  batch_size: 8
+  max_steps: 200  # debug scale; override lên nhiều hơn cho run thật, giữ giống hệt Arm B/C
 seed: 42
-output: runs/pillar1_1_3_arm_A/
+run_dir: runs/pillar1_1_3_arm_A_debug

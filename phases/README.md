@@ -6,7 +6,7 @@ Nguồn sự thật cho RQ/giả thuyết/tiêu chí đi tiếp là [`plans/PLAN
 |---|---|---|---|
 | [0 — Scaffold](phase-0-scaffold.md) | — (hạ tầng) | local | Hoàn tất |
 | [1 — Không cần train](phase-1-no-train.md) | 1.1, 1.2, 5.1 (Trụ cột 0 tạm hoãn) | local + Kaggle | Có kết quả (1.1, 1.2, 5.1) |
-| [2 — Train nhỏ](phase-2-small-train.md) | 1.3, 2.1, 2.2, 5.2 | RTX 24GB (SSH) | Hạ tầng dữ liệu xong, chờ SSH |
+| [2 — Train nhỏ](phase-2-small-train.md) | 1.3, 2.1, 2.2, 5.2 | RTX 24GB (SSH), Kaggle CPU cho debug | Arm A trained (Kaggle CPU); Arm B/C, backbone chưa viết |
 | [3 — Tier 2, cần backbone](phase-3-tier2-backbone-ready.md) | 3, 6 | RTX 24GB (SSH) | Chưa bắt đầu |
 | [4 — Alignment](phase-4-alignment.md) | 4 | RTX 24GB (SSH) | Chưa bắt đầu |
 | [5 — Router (optional)](phase-5-router-optional.md) | 7 | TBD | Không nằm trong lộ trình mặc định |

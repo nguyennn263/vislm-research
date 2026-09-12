@@ -34,13 +34,36 @@ python train.py configs/1_3_arm_A_bpe.yaml compute=kaggle_debug dataset_target_g
 Cùng 1 file config chạy được cả bản debug nhỏ (Kaggle, vài chục MB) lẫn bản đầy đủ
 (RTX 24GB) — chỉ khác giá trị override, không cần sửa tay hay tạo file riêng.
 
-**Đã smoke-test:** stream 50MB từ FineWeb2 tiếng Việt trên Kaggle + tokenize bằng
-tokenizer Arm A (PhoGPT-4B) — xem
+**Đã smoke-test (data only):** stream 50MB từ FineWeb2 tiếng Việt trên Kaggle + tokenize
+bằng tokenizer Arm A (PhoGPT-4B) — xem
 `runs/2026_09_12_data_pipeline_smoke_test_kaggle/metrics.jsonl`. Kết quả: 7.421 tài
 liệu, ~49.7MB text → 9.82M token (~5.06 byte/token), độ dài tài liệu trung vị 731 token.
-Xác nhận pipeline tải + tokenize chạy đúng trước khi tốn compute RTX 24GB cho job đầy đủ.
+
+## Cách chạy: code dùng chung giữa Kaggle và RTX 24GB
+Không copy-paste code vào notebook Kaggle — `vislm/` + `experiments/pillar1_patch_encoder/configs/`
++ `setup/` được đóng gói thành Kaggle Dataset riêng (`nguyennn263/vislm-research-code`,
+cập nhật bằng `kaggle datasets version -p <export dir>`), mount vào kernel tại
+`/kaggle/input/datasets/nguyennn263/vislm-research-code/` (lưu ý: path có thêm tầng
+`datasets/<username>/` so với quy ước `/kaggle/input/<slug>/` thường thấy). Notebook chỉ
+làm 3 việc: set `PYTHONPATH`, chạy `setup/download_prepare_data.py`, rồi
+`python -m vislm.train <config> <overrides>` — **cùng một lệnh, cùng một config**, sẽ
+chạy trên máy RTX 24GB sau này, chỉ đổi giá trị override.
+
+**Đã train thật Arm A (transformer_standard) trên Kaggle** — không chỉ smoke-test data
+nữa, mà chạy trọn `vislm/train.py` 300 bước trên 50MB FineWeb2 + tokenizer PhoGPT-4B, xem
+`runs/2026_09_12_train_arm_a_debug_kaggle/`. Model 10.1M tham số, loss giảm từ 9.998
+(≈ ln(20480), đúng random-init cho vocab PhoGPT) xuống dao động 6.6–7.6 — xác nhận có
+học thật, pipeline train hoạt động đúng đầu-cuối.
+
+**Vấn đề GPU cần bạn quyết định:** Kaggle cấp GPU P100 (sm_60), nhưng torch bản mới
+không còn hỗ trợ sm_60 → `vislm/train.py` tự phát hiện lỗi này (`pick_device()`) và rơi
+về CPU thay vì crash. Chạy được nhưng **chậm** (300 bước, model 10M tham số ≈ 12 phút
+trên CPU). Muốn train "full" thật trên Kaggle với tốc độ GPU cần ghim torch bản cũ hơn hỗ
+trợ sm_60 (đánh đổi: torch cũ hơn, ít tính năng mới hơn) — chưa làm, để bạn quyết định có
+cần không hay chấp nhận CPU cho tới khi có máy RTX 24GB.
 
 ## Trạng thái
-Hạ tầng dữ liệu (script prep + config cho 1.3, 2.1, 2.2) đã dựng xong, test chạy được
-cả ở quy mô nhỏ trên Kaggle. Chưa chạy training thật (cần model Arm A/B/C, hiện mới có
-tokenizer Arm A — backbone/BLT model code chưa viết) — chờ SSH máy RTX 24GB.
+Arm A (tokenizer + model `TransformerLM` + trainer config-driven) đã viết xong và train
+thật được (dù chỉ CPU trên Kaggle). Arm B/C (BLT thuần + BLT mồi âm tiết) **chưa viết** —
+đây là phần phức tạp hơn nhiều (entropy model + dynamic patching + local/global
+transformer), chưa bắt đầu. 2.1/2.2 (Trụ cột 2 - backbone SSM) cũng chưa viết code.
