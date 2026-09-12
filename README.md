@@ -16,6 +16,11 @@ data/{raw,prepared}/  # không commit dữ liệu thô
 runs/             # dump_dir mỗi lần chạy (config + code snapshot + metrics)
 ```
 
+`data/` bị `.gitignore` chặn hoàn toàn (kể cả file lạc trong đó, ví dụ `kaggle.json`) —
+tồn tại local only, tự tạo lại bằng `mkdir -p data/{raw,prepared}`. `raw/` chứa dữ liệu
+tải về nguyên bản theo Phụ lục "Nguồn dữ liệu tiếng Việt hiện có" trong `plans/PLAN.md`;
+`prepared/` chứa dữ liệu đã làm sạch/tokenize, sinh ra bởi `setup/download_prepare_data.py`.
+
 ## Bắt đầu
 
 ```bash

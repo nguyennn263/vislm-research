@@ -3,12 +3,9 @@ __pycache__/
 .venv/
 venv/
 
-# datasets and credentials - never commit
-data/raw/*
-data/prepared/*
-!data/raw/.gitkeep
-!data/prepared/.gitkeep
-data/kaggle.json
+# datasets and credentials - never commit. raw/ and prepared/ exist locally only,
+# not tracked (git can't re-include files under an ignored parent dir).
+data/
 
 # run provenance (config.yaml/metrics.jsonl/code snapshot) is committed; heavy artifacts are not
 runs/*/checkpoints/
