@@ -9,23 +9,33 @@ architecture: blt_entropy_patching  # đúng ý tưởng gốc facebookresearch/
 dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
 dataset_target_gb: 0.05  # debug scale; override lên GB thật khi chạy full trên RTX 24GB
 model:
-  d_model: 256      # latent transformer — giữ giống Arm A để so compute
+  # d_model=192 (không phải 256 như Arm A) — đo bằng experiments/pillar1_patch_encoder/
+  # measure_compute_match.py: cùng d_model=256/n_layers=6 với Arm A cho FLOPs/byte gấp
+  # ~1.9 lần Arm A (Arm B tốn thêm compute cho local encoder/decoder mỗi byte, ngoài
+  # latent transformer mỗi patch) — 192 đưa tỷ lệ về ~1.06x, trong ngưỡng ±20%.
+  d_model: 192
   n_layers: 6
-  n_heads: 8
+  n_heads: 6
   max_seq_len: 512  # tính theo BYTE, không phải patch
 entropy_model:
   d_model: 128      # model entropy nhỏ hơn nhiều so với latent transformer, theo đúng thiết kế BLT
   n_layers: 4
   n_heads: 4
 patching:
-  entropy_threshold: 1.5  # TODO: chưa tune, cần quét theo phân phối entropy thật trên data
+  # Đo thật trên data local (100-150 bước pretrain, mẫu 500-2MB): entropy trung bình
+  # ~3.07, median ~2.96 — ngưỡng 1.5 ban đầu quá thấp, gây vỡ patch = 1 byte gần như
+  # toàn bộ. 3.7 cho avg patch dao động 2.2-6 byte tuỳ mẫu đo/số bước pretrain (RẤT nhạy
+  # quanh vùng entropy trung bình) — coi là điểm bắt đầu hợp lý, KHÔNG phải giá trị cuối;
+  # cần đo lại bằng experiments/pillar1_patch_encoder/measure_compute_match.py sau khi
+  # entropy model đã pretrain đủ `train.entropy_pretrain_steps` ở scale thật.
+  entropy_threshold: 3.7
   max_patch_len: 16
-# LƯU Ý: đo thật trên Kaggle (runs/2026_09_13_train_arm_b_debug_kaggle_gpu/) cho thấy
-# latent_params Arm B (~6.5M) THẤP hơn tổng params Arm A (~10.1M) dù cùng d_model/n_layers/
-# n_heads — vì Arm A có bảng embedding từ vựng lớn (vocab_size PhoGPT = 20480, chiếm phần
-# lớn tham số), còn Arm B chỉ cần bảng byte (256). Đây là khác biệt CẤU TRÚC giữa BPE và
-# byte-level, không phải lỗi config — nên so theo FLOPs (đúng nguyên tắc cô lập biến số
-# trong plans/PLAN.md), không chỉ đếm tham số thô. Chưa đo/khớp FLOPs thật giữa 2 arm.
+# Compute-matching: đo bằng measure_compute_match.py (heuristic 6*params FLOPs/byte, xem
+# vislm/backbones/flops.py) — d_model=256 (bằng Arm A) cho Arm B ~1.9x FLOPs/byte Arm A
+# vì Arm B tốn thêm compute local encoder/decoder mỗi BYTE, ngoài latent transformer mỗi
+# PATCH (Arm A chỉ tốn compute mỗi TOKEN, không có tầng phụ này). d_model=192 đưa tỷ lệ
+# về ~1.06x — trong ngưỡng ±20%, dùng làm giá trị hiện tại. Ước lượng, không phải FLOPs
+# đo chính xác (profiler) — xem docstring vislm/backbones/flops.py.
 train:
   lr: 0.0003
   batch_size: 8

@@ -9,16 +9,16 @@ architecture: blt_entropy_patching_syllable_seeded
 dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
 dataset_target_gb: 0.05
 model:
-  d_model: 256
+  d_model: 192  # PHẢI giống hệt 1_3_arm_B_blt.yaml — xem note compute-matching ở đó
   n_layers: 6
-  n_heads: 8
+  n_heads: 6
   max_seq_len: 512
 entropy_model:
   d_model: 128
   n_layers: 4
   n_heads: 4
 patching:
-  entropy_threshold: 1.5  # PHẢI giống hệt 1_3_arm_B_blt.yaml — chỉ khác seed_boundaries_fn
+  entropy_threshold: 3.7  # PHẢI giống hệt 1_3_arm_B_blt.yaml — chỉ khác seed_boundaries_fn
   max_patch_len: 16
 train:
   lr: 0.0003
