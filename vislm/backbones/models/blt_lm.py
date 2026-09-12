@@ -3,8 +3,11 @@ local encoder / latent transformer / local decoder (Pagnoni et al., 2024,
 facebookresearch/blt). Scoped-down reference implementation for the small-scale
 ablation in plans/PLAN.md question 1.3 - NOT the paper's full training codebase:
 - local encoder is mean-pooling instead of cross-attention over byte n-grams.
-- patches are built with a per-sequence Python loop instead of a fully vectorized
-  ragged batch (fine at debug scale; would need batching work to scale up).
+- still loops over the batch dim in Python (one sequence at a time - patch counts
+  differ per sequence, so this isn't trivially vectorized); the local decoder,
+  the main cost, IS batched across all patches within a sequence (see
+  build_causal_padding_mask) so it's one transformer call per sequence, not one
+  per patch.
 """
 import torch
 import torch.nn as nn
@@ -13,6 +16,17 @@ import torch.nn.functional as F
 from vislm.backbones.modules.entropy_model import BYTE_VOCAB_SIZE, ByteEntropyModel
 from vislm.backbones.modules.patching import entropy_to_patch_lengths
 from vislm.backbones.modules.transformer_block import TransformerBlock, count_params
+
+
+def build_causal_padding_mask(lengths: torch.Tensor, max_len: int) -> torch.Tensor:
+    """lengths: [n] valid length per row. Returns bool mask [n, 1, max_len, max_len],
+    True = attend: causal AND key position is within that row's valid length."""
+    device = lengths.device
+    idx = torch.arange(max_len, device=device)
+    valid_key = idx.unsqueeze(0) < lengths.unsqueeze(1)  # [n, max_len]
+    causal = idx.unsqueeze(0) <= idx.unsqueeze(1)  # [max_len, max_len], True where key<=query
+    mask = causal.unsqueeze(0) & valid_key.unsqueeze(1)  # [n, max_len, max_len]
+    return mask.unsqueeze(1)  # [n, 1, max_len, max_len]
 
 
 class BLTLanguageModel(nn.Module):
@@ -100,15 +114,27 @@ class BLTLanguageModel(nn.Module):
             latent_out = self.latent_ln(x)[0]  # [n_patches, d_model]
 
             # local decoder: patch i's bytes are predicted from patch (i-1)'s latent
-            # output (causal across patches) + autoregressively within the patch
+            # output (causal across patches) + autoregressively within the patch.
+            # Batched across all patches in this sequence via padding + a combined
+            # causal/padding mask, instead of one transformer call per patch.
+            d_model = emb.size(-1)
+            max_len = max(length for _, length in patch_spans)
+            lengths_t = torch.tensor([length for _, length in patch_spans], device=device)
+            dec_in = torch.zeros(n_patches, max_len, d_model, device=device)
             for pi, (offset, length) in enumerate(patch_spans):
                 prev_latent = latent_out[pi - 1] if pi > 0 else torch.zeros_like(latent_out[0])
                 in_bytes = emb[offset : offset + length - 1]
-                seq = torch.cat([prev_latent.unsqueeze(0), in_bytes], dim=0).unsqueeze(0)
-                for block in self.decoder_blocks:
-                    seq = block(seq)
-                seq = self.decoder_ln(seq)[0]
-                all_logits[bi, offset : offset + length] = self.head(seq)
+                dec_in[pi, :length] = torch.cat([prev_latent.unsqueeze(0), in_bytes], dim=0)
+
+            attn_mask = build_causal_padding_mask(lengths_t, max_len)
+            seq = dec_in
+            for block in self.decoder_blocks:
+                seq = block(seq, attn_mask=attn_mask)
+            seq = self.decoder_ln(seq)
+            patch_logits = self.head(seq)  # [n_patches, max_len, vocab]
+
+            for pi, (offset, length) in enumerate(patch_spans):
+                all_logits[bi, offset : offset + length] = patch_logits[pi, :length]
 
         loss = None
         if targets is not None:
