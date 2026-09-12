@@ -1,0 +1,9 @@
+# Câu hỏi con 1.1d — Lỗi chính tả (plans/PLAN.md, Trụ cột 1)
+phase: phase-1-no-train
+status: chưa chạy
+tokenizer: NlpHUST/gpt2-vietnamese  # PhoGPT-4B lỗi tương thích transformers mới, xem vislm/tokenizers/bpe_baseline.py
+clean_text: data/prepared/pillar1/clean_sample_vi.txt      # cần tạo: 1 đoạn văn sạch
+noisy_text: data/prepared/pillar1/noisy_sample_vi.txt      # cần tạo: bản sao có lỗi chính tả/dấu cố ý
+metric: token_count_delta  # so tỷ lệ token giữa 2 bản
+threshold_pass: "> 2x so với văn bản sạch"
+output: runs/pillar1_1_1d/metrics.jsonl

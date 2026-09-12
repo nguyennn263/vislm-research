@@ -1,0 +1,9 @@
+# Câu hỏi con 1.2a — Entropy byte-tiếp-theo, model đa ngôn ngữ tổng quát (plans/PLAN.md, Trụ cột 1)
+phase: phase-1-no-train
+status: chưa chạy
+model: ai-forever/mGPT  # hoặc facebook/xglm-564M — model đa ngôn ngữ, không train riêng cho tiếng Việt
+compute: kaggle  # cần forward pass, ưu tiên free GPU thay vì tốn giờ máy RTX 24GB
+input_corpus: data/prepared/pillar1/syllable_boundary_sample_vi.txt
+metric: entropy_peak_vs_syllable_boundary_overlap
+threshold_pass: "> 70% trùng khớp"
+output: runs/pillar1_1_2a/metrics.jsonl

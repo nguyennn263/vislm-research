@@ -1,0 +1,13 @@
+# Câu hỏi con 1.3, Arm A (baseline) — BPE + Transformer chuẩn (plans/PLAN.md, Trụ cột 1)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+arm: A
+tokenizer: vislm.tokenizers.bpe_baseline
+architecture: transformer_standard
+# Biến số cố định giữa Arm A/B/C — KHÔNG được đổi khi so sánh (nguyên tắc cô lập biến số, plans/PLAN.md):
+dataset: data/prepared/pillar1/pretrain_corpus_vi  # TODO: chốt corpus cụ thể trước khi chạy
+total_flops: null       # TODO: chốt số FLOPs mục tiêu, giữ giống hệt Arm B/C
+latent_transformer_params: null  # TODO
+seed: 42
+output: runs/pillar1_1_3_arm_A/

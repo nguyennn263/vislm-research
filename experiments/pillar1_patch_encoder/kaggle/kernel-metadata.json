@@ -1,0 +1,14 @@
+{
+  "id": "nguyennn263/vislm-pillar1-phase1-baseline",
+  "title": "vislm-pillar1-phase1-baseline",
+  "code_file": "vislm_pillar1_phase1_baseline.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

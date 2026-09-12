@@ -1,0 +1,14 @@
+# Câu hỏi con 1.3, Arm B — BLT thuần entropy (plans/PLAN.md, Trụ cột 1)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+arm: B
+tokenizer: vislm.tokenizers.blt_patch_encoder
+architecture: blt_entropy_patching  # đúng kiến trúc gốc facebookresearch/blt, không mồi âm tiết
+# Biến số cố định giữa Arm A/B/C — PHẢI giống hệt 1_3_arm_A_bpe.yaml:
+dataset: data/prepared/pillar1/pretrain_corpus_vi
+total_flops: null
+latent_transformer_params: null
+seed: 42
+compare_against: 1_3_arm_A_bpe  # B so A: byte-level patching có ích gì không
+output: runs/pillar1_1_3_arm_B/

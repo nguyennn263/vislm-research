@@ -1,0 +1,9 @@
+phase: phase-1-no-train
+pillar: 1
+questions: [1.1a, 1.1b, 1.1c, 1.1d, 1.2a, 1.2b]
+compute: kaggle (CPU)
+kernel: nguyennn263/vislm-pillar1-phase1-baseline
+kernel_version: 3
+tokenizer_1_1: NlpHUST/gpt2-vietnamese
+model_1_2a: facebook/xglm-564M
+model_1_2b: NlpHUST/gpt2-vietnamese

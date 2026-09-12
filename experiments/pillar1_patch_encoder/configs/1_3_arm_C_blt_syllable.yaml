@@ -1,0 +1,15 @@
+# Câu hỏi con 1.3, Arm C — BLT + mồi ranh giới patch bằng âm tiết (plans/PLAN.md, Trụ cột 1)
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh
+arm: C
+tokenizer: vislm.tokenizers.syllable_seed  # cắm thêm vào blt_patch_encoder (Arm B)
+architecture: blt_entropy_patching_syllable_seeded
+# Biến số cố định giữa Arm A/B/C — PHẢI giống hệt 1_3_arm_A_bpe.yaml / 1_3_arm_B_blt.yaml:
+dataset: data/prepared/pillar1/pretrain_corpus_vi
+total_flops: null
+latent_transformer_params: null
+seed: 42
+compare_against: 1_3_arm_B_blt  # C so B: riêng phần "mồi âm tiết" có cộng thêm giá trị không
+# LƯU Ý: không chạy Arm C trước khi Arm B đã có kết luận so với Arm A (xem plans/PLAN.md)
+output: runs/pillar1_1_3_arm_C/

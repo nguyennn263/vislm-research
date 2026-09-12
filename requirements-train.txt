@@ -1,0 +1,3 @@
+# Phase 2 trở đi — cài trên máy RTX 24GB (SSH) hoặc Kaggle notebook, không cần trên máy local.
+-r requirements.txt
+torch

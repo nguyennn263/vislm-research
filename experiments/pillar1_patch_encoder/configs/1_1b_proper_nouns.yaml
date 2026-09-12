@@ -1,0 +1,8 @@
+# Câu hỏi con 1.1b — Tên riêng (plans/PLAN.md, Trụ cột 1)
+phase: phase-1-no-train
+status: chưa chạy
+tokenizer: NlpHUST/gpt2-vietnamese  # PhoGPT-4B lỗi tương thích transformers mới, xem vislm/tokenizers/bpe_baseline.py
+input_wordlist: data/prepared/pillar1/proper_nouns_vi.txt  # cần tạo: tên người/địa danh không phổ biến
+metric: split_rate  # tỷ lệ tên bị tách vỡ thành > 1 token
+threshold_pass: "> 2x so với văn bản sạch, phổ biến"
+output: runs/pillar1_1_1b/metrics.jsonl

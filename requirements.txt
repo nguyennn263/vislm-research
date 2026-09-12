@@ -1,0 +1,6 @@
+# Phase 0/1 — chạy local (Apple M5, CPU), chỉ cần tokenizer, không cần train.
+numpy
+pyyaml
+transformers
+tokenizers
+sentencepiece
