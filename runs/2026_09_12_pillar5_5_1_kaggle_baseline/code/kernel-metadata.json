@@ -1,0 +1,14 @@
+{
+  "id": "nguyennn263/vislm-pillar5-5-1-retriever-baseline",
+  "title": "vislm-pillar5-5-1-retriever-baseline",
+  "code_file": "vislm_pillar5_5_1_retriever_baseline.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}

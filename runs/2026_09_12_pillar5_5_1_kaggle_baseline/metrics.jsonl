@@ -1,0 +1,1 @@
+{"section": "5.1", "results": {"bkai-foundation-models/vietnamese-bi-encoder": {"accuracy": 0.8, "mean_margin": 0.09812022596597672, "stdev_margin": 0.12047275055745044, "n": 20}, "dangvantuan/vietnamese-embedding": {"accuracy": 0.9, "mean_margin": 0.07887588292360306, "stdev_margin": 0.08000033375719058, "n": 20}}}

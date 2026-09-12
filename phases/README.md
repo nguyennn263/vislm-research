@@ -4,8 +4,8 @@ Nguồn sự thật cho RQ/giả thuyết/tiêu chí đi tiếp là [`plans/PLAN
 
 | Phase | Trụ cột / câu hỏi con | Compute | Trạng thái |
 |---|---|---|---|
-| [0 — Scaffold](phase-0-scaffold.md) | — (hạ tầng) | local | Đang làm |
-| [1 — Không cần train](phase-1-no-train.md) | 1.1, 1.2, 5.1 (Trụ cột 0 tạm hoãn) | local + Kaggle | Chưa bắt đầu |
+| [0 — Scaffold](phase-0-scaffold.md) | — (hạ tầng) | local | Hoàn tất |
+| [1 — Không cần train](phase-1-no-train.md) | 1.1, 1.2, 5.1 (Trụ cột 0 tạm hoãn) | local + Kaggle | Có kết quả (1.1, 1.2, 5.1) |
 | [2 — Train nhỏ](phase-2-small-train.md) | 1.3, 2.1, 2.2, 5.2 | RTX 24GB (SSH) | Chưa bắt đầu |
 | [3 — Tier 2, cần backbone](phase-3-tier2-backbone-ready.md) | 3, 6 | RTX 24GB (SSH) | Chưa bắt đầu |
 | [4 — Alignment](phase-4-alignment.md) | 4 | RTX 24GB (SSH) | Chưa bắt đầu |

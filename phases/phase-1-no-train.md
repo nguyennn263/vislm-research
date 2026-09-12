@@ -42,4 +42,18 @@ vấn đề" một cách chắc chắn, vì kết quả có thể phụ thuộc 
 
 Lưu ý: tokenizer dùng là `NlpHUST/gpt2-vietnamese`, không phải `vinai/PhoGPT-4B` như
 gợi ý gốc trong PLAN.md — PhoGPT-4B lỗi tương thích transformers hiện tại (xem
-`vislm/tokenizers/bpe_baseline.py`). 5.1 chưa chạy.
+`vislm/tokenizers/bpe_baseline.py`).
+
+**5.1 — retriever tiếng Việt phân biệt cặp đoạn văn gần nghĩa khác sự thật:** đã chạy
+trên Kaggle (CPU), 20 cặp (câu hỏi, đoạn đúng, đoạn gài sai lệch 1 dữ kiện then chốt —
+năm/số/tên/địa danh), xem `runs/2026_09_12_pillar5_5_1_kaggle_baseline/metrics.jsonl`.
+- `bkai-foundation-models/vietnamese-bi-encoder`: 80% chọn đúng (16/20), margin cosine
+  trung bình +0.098 (độ lệch chuẩn 0.12 — khá phân tán, có cặp bị chọn sai hẳn).
+- `dangvantuan/vietnamese-embedding`: 90% chọn đúng (18/20), margin +0.079 (ổn định hơn,
+  độ lệch chuẩn 0.08).
+
+Chưa có ngưỡng "đủ tin cậy" định trước ở Trụ cột 0 (0.2/0.3) để so — nhưng 80-90% với
+n=20 nghĩa là còn 2-4 cặp mỗi model bị lẫn lộn dữ kiện, khớp đúng lo ngại nêu trong RQ5:
+retriever hiện tại chưa đủ mạnh để tin cậy hoàn toàn cho cập nhật tri thức dạng "chỉ thay
+đổi 1 con số/năm" — cần cân nhắc thêm bước lọc/rerank chứ không chỉ dựa vào cosine
+similarity thô.

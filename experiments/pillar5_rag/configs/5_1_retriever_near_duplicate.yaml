@@ -1,0 +1,10 @@
+# Question 5.1 - retriever near-duplicate discrimination (plans/PLAN.md, Tru cot 5)
+phase: phase-1-no-train
+status: chưa chạy
+models:
+  - bkai-foundation-models/vietnamese-bi-encoder
+  - dangvantuan/vietnamese-embedding
+compute: kaggle (CPU)
+metric: accuracy_correct_passage_ranked_higher
+threshold_pass: "cần đủ cao để tin cậy cho RAG production (chưa định số cụ thể ở Trụ cột 0)"
+output: runs/pillar5_5_1/metrics.jsonl

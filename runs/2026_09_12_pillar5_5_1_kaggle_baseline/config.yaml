@@ -1,0 +1,8 @@
+phase: phase-1-no-train
+pillar: 5
+question: 5.1
+compute: kaggle (CPU)
+kernel: nguyennn263/vislm-pillar5-5-1-retriever-baseline
+kernel_version: 1
+models: [bkai-foundation-models/vietnamese-bi-encoder, dangvantuan/vietnamese-embedding]
+n_triples: 20

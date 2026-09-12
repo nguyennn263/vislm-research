@@ -12,7 +12,7 @@ Dựng khung repo tối thiểu để Phase 1 chạy được, không viết tr�
 - [x] `vislm/tokenizers/` với baseline BPE (Arm A) — đủ để chạy phân tích 1.1 ở Phase 1.
 - [x] Quy ước `runs/<timestamp>_<phase>_<arm>/{config.yaml, code/, metrics.jsonl, logs/}` (xem `runs/README.md`).
 - [x] `pip install -r requirements.txt` đã chạy thử trong `.venv/` — sạch, `import vislm.tokenizers` OK (transformers 4.57.6, không cần torch).
-- [ ] 1 lần chạy mẫu thật (VD: 1.1a) ghi ra `runs/` đúng quy ước — để lại cho lúc bắt đầu Phase 1.
+- [x] 1 lần chạy mẫu thật ghi ra `runs/` đúng quy ước — xem `runs/2026_09_12_pillar1_phase1_kaggle_baseline_v2/` (và các run khác từ Phase 1).
 
 ## Compute
 Local (Apple M5, CPU). Không cần GPU cho phase này.
@@ -23,4 +23,4 @@ Local (Apple M5, CPU). Không cần GPU cho phase này.
 - Có tối thiểu 1 lần chạy mẫu ghi đúng quy ước vào `runs/`.
 
 ## Trạng thái
-Đang làm.
+Hoàn tất.
