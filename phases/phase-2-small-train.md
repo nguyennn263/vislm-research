@@ -68,6 +68,14 @@ gần như giống hệt (6.956 GPU vs 6.956 CPU). Xem
 `runs/2026_09_12_train_arm_a_debug_kaggle_gpu/` (so với bản CPU
 `runs/2026_09_12_train_arm_a_debug_kaggle/`).
 
+**Đã chạy Arm A ở quy mô lớn hơn** (0.5GB FineWeb2, 2000 bước, cùng GPU) — xem
+`runs/2026_09_13_train_arm_a_scaled_kaggle_gpu/`. Loss giảm từ 9.998 xuống 5.66 (min
+4.76) — hội tụ tốt hơn hẳn bản debug (chỉ tới ~7 sau 300 bước). Train 2000 bước chỉ mất
+~135 giây (~0.068s/bước, khớp con số đo trước đó); **bottleneck thật sự giờ là bước
+tokenize 0.5GB text (~281 giây, vòng lặp Python gọi `tok.encode()` từng tài liệu)**, không
+phải training — nếu scale data lớn hơn nữa, đây là chỗ cần tối ưu trước (batch tokenize),
+không phải model.
+
 ## Arm B/C (BLT) — đã viết và train thật trên Kaggle
 `vislm/backbones/modules/entropy_model.py` (byte LM nhỏ, train ngắn rồi freeze, dùng để
 tính entropy) + `patching.py` (ranh giới patch theo ngưỡng entropy toàn cục — kiểu đơn
@@ -85,19 +93,37 @@ byte) xuống 3.82 (min 3.71) — học thật, đúng đầu-cuối. Xem
 `runs/2026_09_13_train_arm_b_debug_kaggle_gpu/`. Arm C đã test local (forward+backward
 đúng), chưa chạy debug thật trên Kaggle.
 
-**Chưa compute-matched Arm A vs B/C:** latent_params Arm B (6.48M) THẤP hơn Arm A (10.1M)
-dù cùng d_model/n_layers/n_heads — vì Arm A có bảng embedding từ vựng PhoGPT (20480 mục,
-chiếm phần lớn tham số Arm A), Arm B chỉ cần bảng byte (256 mục). Đây là khác biệt CẤU
-TRÚC giữa BPE và byte-level, không phải lỗi cấu hình — nguyên tắc cô lập biến số trong
-PLAN.md đòi hỏi so theo **FLOPs**, không phải đếm tham số thô — chưa đo/khớp FLOPs thật.
+## Compute-matching (đã đo và chỉnh)
+`experiments/pillar1_patch_encoder/measure_compute_match.py` (dùng heuristic ~6×params
+FLOPs/byte, xem `vislm/backbones/flops.py`) đo được:
+- Arm B cùng `d_model=256` với Arm A cho FLOPs/byte gấp **~1.9 lần** Arm A — vì Arm B tốn
+  thêm compute cho local encoder/decoder mỗi BYTE, ngoài latent transformer mỗi PATCH
+  (Arm A chỉ tốn compute mỗi TOKEN qua 1 tầng duy nhất). latent_params Arm B (6.48M) vốn
+  THẤP hơn Arm A (10.1M) dù cùng d_model/n_layers vì Arm A có bảng embedding từ vựng lớn
+  (PhoGPT vocab_size=20480) — khác biệt CẤU TRÚC giữa BPE và byte-level, không phải lỗi
+  cấu hình, nên phải so FLOPs chứ không phải đếm tham số thô.
+- Giảm Arm B/C xuống `d_model=192, n_heads=6` đưa tỷ lệ về **~1.06–1.14x** — trong ngưỡng
+  ±20%, dùng làm giá trị hiện tại (đã cập nhật trong `1_3_arm_B_blt.yaml`/`_C_...yaml`).
+- Đo entropy thật trên data cũng cho thấy `entropy_threshold: 1.5` (đoán ban đầu) quá
+  thấp — entropy trung bình thật ~3.0-3.7, khiến gần như mọi byte tự thành 1 patch. Đã
+  chỉnh lên 3.7 (điểm bắt đầu, rất nhạy quanh vùng này, xem comment trong config).
+- Đây là ước lượng (heuristic 6N), không phải FLOPs đo bằng profiler — đủ dùng để chỉnh
+  kích thước tương đối, không phải con số khoa học cuối cùng.
 
-**Hiệu năng Arm B chậm hơn nhiều so với Arm A** (cùng GPU): ~1.63s/bước so với ~0.067s/bước
-của Arm A — do vòng lặp Python theo từng patch (điểm rút gọn nói trên), không phải lỗi. Cần
-tối ưu (vector hoá theo batch) trước khi chạy ở quy mô lớn hơn debug.
+## Tối ưu tốc độ Arm B (đã làm 1 bước)
+Local decoder trước đây gọi transformer riêng cho TỪNG patch (hàng trăm lần/sequence) —
+giờ đã batch tất cả patch trong 1 sequence lại thành 1 lệnh gọi duy nhất (pad + attention
+mask kết hợp causal+padding, xem `build_causal_padding_mask` trong `blt_lm.py`). Đã verify
+cho kết quả **giống hệt bit-for-bit** so với bản vòng lặp cũ (cùng seed) — thuần tối ưu
+tốc độ, không đổi hành vi. Vòng lặp Python theo từng SEQUENCE trong batch (không phải
+từng patch) vẫn còn — nếu cần nhanh hơn nữa thì đây là bước tiếp theo.
 
 ## Trạng thái
-Arm A, Arm B đã viết xong + train thật được trên Kaggle GPU. Arm C viết xong, đã test
-local, chưa test debug trên Kaggle. Còn thiếu trước khi so sánh 1.3 có ý nghĩa: (1) đo
-FLOPs thật và chỉnh cấu hình để compute-matched giữa 3 arm, (2) tối ưu tốc độ Arm B/C nếu
-muốn chạy quy mô lớn hơn debug, (3) quét `entropy_threshold` (đang để tạm 1.5, chưa tune).
-2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
+Arm A đã chạy ở 2 quy mô (debug 300 bước, và scaled 2000 bước/0.5GB). Arm B đã
+compute-matched với Arm A (~1.06-1.14x FLOPs/byte) và đã tối ưu tốc độ decoder — cần
+rerun debug trên Kaggle để xác nhận tốc độ mới + loss với size đã chỉnh (đang chạy).
+Arm C viết xong, đã test local, chưa test trên Kaggle. Còn lại trước khi so sánh 1.3 có
+kết luận: (1) quét lại `entropy_threshold` ở scale training thật (số hiện tại đo trên
+mẫu nhỏ, rất nhạy), (2) chạy đủ 3 arm cùng số bước/cùng data để so sánh thật, (3) cân
+nhắc vector hoá luôn vòng lặp theo sequence nếu cần scale lớn hơn debug. 2.1/2.2 (Trụ
+cột 2 — backbone SSM) chưa viết code.

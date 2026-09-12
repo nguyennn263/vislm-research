@@ -1,0 +1,14 @@
+phase: phase-2-small-train
+purpose: bigger, more meaningful Arm A run (0.5GB data, 2000 steps) after the 300-step/50MB debug run
+compute: kaggle_debug (GPU, P100, torch pinned to 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-a-scaled
+kernel_version: 1
+config_used: experiments/pillar1_patch_encoder/configs/1_3_arm_A_bpe.yaml
+overrides: "dataset_target_gb=0.5 train.max_steps=2000"
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.5 GB streamed, 97,363,508 tokens
+tokenizer: vinai/PhoGPT-4B
+model_params: 10113024
+device: cuda (Tesla P100-PCIE-16GB)
+timing_s: data_stream=208, tokenize=281, train_2000_steps=135 (~0.0676s/step)
+note: tokenization (pure python loop over tok.encode() per doc) is now the biggest
+      wall-clock cost, not training - worth batching if scaling further.
