@@ -1,0 +1,52 @@
+{"event": "start", "params": 4545728, "latent_params": 3670464, "device": "cuda"}
+{"entropy_pretrain_step": 0, "loss": 5.560405731201172}
+{"entropy_pretrain_step": 1, "loss": 5.212270736694336}
+{"entropy_pretrain_step": 2, "loss": 5.042849540710449}
+{"entropy_pretrain_step": 3, "loss": 4.94893217086792}
+{"entropy_pretrain_step": 4, "loss": 4.86402702331543}
+{"entropy_pretrain_step": 5, "loss": 4.820397853851318}
+{"entropy_pretrain_step": 6, "loss": 4.732100009918213}
+{"entropy_pretrain_step": 7, "loss": 4.684586048126221}
+{"entropy_pretrain_step": 8, "loss": 4.598628520965576}
+{"entropy_pretrain_step": 9, "loss": 4.564306259155273}
+{"entropy_pretrain_step": 10, "loss": 4.481281280517578}
+{"entropy_pretrain_step": 11, "loss": 4.398484706878662}
+{"entropy_pretrain_step": 12, "loss": 4.344707489013672}
+{"entropy_pretrain_step": 13, "loss": 4.388242244720459}
+{"entropy_pretrain_step": 14, "loss": 4.378320217132568}
+{"entropy_pretrain_step": 15, "loss": 4.3216681480407715}
+{"entropy_pretrain_step": 16, "loss": 4.281131267547607}
+{"entropy_pretrain_step": 17, "loss": 4.325321197509766}
+{"entropy_pretrain_step": 18, "loss": 4.13649320602417}
+{"entropy_pretrain_step": 19, "loss": 4.109908103942871}
+{"entropy_pretrain_step": 20, "loss": 4.107847690582275}
+{"step": 0, "loss": 5.608047962188721, "elapsed_s": 5.355014085769653}
+{"step": 1, "loss": 5.151844024658203, "elapsed_s": 5.612860679626465}
+{"step": 2, "loss": 4.898488998413086, "elapsed_s": 5.865257740020752}
+{"step": 3, "loss": 4.8008317947387695, "elapsed_s": 6.1235833168029785}
+{"step": 4, "loss": 4.693019866943359, "elapsed_s": 6.379626512527466}
+{"step": 5, "loss": 4.640791416168213, "elapsed_s": 6.63196873664856}
+{"step": 6, "loss": 4.591161251068115, "elapsed_s": 6.886793851852417}
+{"step": 7, "loss": 4.561720848083496, "elapsed_s": 7.14313268661499}
+{"step": 8, "loss": 4.4919657707214355, "elapsed_s": 7.396458625793457}
+{"step": 9, "loss": 4.461394309997559, "elapsed_s": 7.66373085975647}
+{"step": 10, "loss": 4.389271259307861, "elapsed_s": 7.9199841022491455}
+{"step": 11, "loss": 4.361908435821533, "elapsed_s": 8.180169820785522}
+{"step": 12, "loss": 4.3065056800842285, "elapsed_s": 8.440547466278076}
+{"step": 13, "loss": 4.345946788787842, "elapsed_s": 8.701149463653564}
+{"step": 14, "loss": 4.322213172912598, "elapsed_s": 8.952614784240723}
+{"step": 15, "loss": 4.27262020111084, "elapsed_s": 9.209793329238892}
+{"step": 16, "loss": 4.221926689147949, "elapsed_s": 9.46199893951416}
+{"step": 17, "loss": 4.275219440460205, "elapsed_s": 9.721798181533813}
+{"step": 18, "loss": 4.088350296020508, "elapsed_s": 10.003584146499634}
+{"step": 19, "loss": 4.088852882385254, "elapsed_s": 10.26224970817566}
+{"step": 20, "loss": 4.104457378387451, "elapsed_s": 10.513734579086304}
+{"step": 21, "loss": 4.1501007080078125, "elapsed_s": 10.767159700393677}
+{"step": 22, "loss": 4.177737236022949, "elapsed_s": 11.015161275863647}
+{"step": 23, "loss": 4.039895534515381, "elapsed_s": 11.26891541481018}
+{"step": 24, "loss": 3.989053964614868, "elapsed_s": 11.525575399398804}
+{"step": 25, "loss": 3.9173641204833984, "elapsed_s": 11.780394077301025}
+{"step": 26, "loss": 3.984365701675415, "elapsed_s": 12.033341646194458}
+{"step": 27, "loss": 3.9697511196136475, "elapsed_s": 12.287192344665527}
+{"step": 28, "loss": 4.024774074554443, "elapsed_s": 12.5405592918396}
+{"step": 29, "loss": 3.955421209335327, "elapsed_s": 12.803884506225586}

@@ -110,13 +110,18 @@ FLOPs/byte, xem `vislm/backbones/flops.py`) đo được:
 - Đây là ước lượng (heuristic 6N), không phải FLOPs đo bằng profiler — đủ dùng để chỉnh
   kích thước tương đối, không phải con số khoa học cuối cùng.
 
-## Tối ưu tốc độ Arm B (đã làm 1 bước)
+## Tối ưu tốc độ Arm B (đã làm 1 bước, đã đo lại trên Kaggle GPU)
 Local decoder trước đây gọi transformer riêng cho TỪNG patch (hàng trăm lần/sequence) —
 giờ đã batch tất cả patch trong 1 sequence lại thành 1 lệnh gọi duy nhất (pad + attention
 mask kết hợp causal+padding, xem `build_causal_padding_mask` trong `blt_lm.py`). Đã verify
 cho kết quả **giống hệt bit-for-bit** so với bản vòng lặp cũ (cùng seed) — thuần tối ưu
-tốc độ, không đổi hành vi. Vòng lặp Python theo từng SEQUENCE trong batch (không phải
-từng patch) vẫn còn — nếu cần nhanh hơn nữa thì đây là bước tiếp theo.
+tốc độ, không đổi hành vi.
+
+**Đo lại trên cùng GPU (P100):** ~0.256s/bước, so với ~1.63s/bước trước khi tối ưu —
+nhanh hơn **~6.4 lần**. Xem `runs/2026_09_13_train_arm_b_debug_kaggle_gpu_v2_optimized/`
+(so với `runs/2026_09_13_train_arm_b_debug_kaggle_gpu/`). Vẫn chậm hơn Arm A (~0.068s/
+bước) khoảng 3.8 lần — vòng lặp Python theo từng SEQUENCE trong batch (không phải từng
+patch nữa) vẫn còn, là bước tối ưu tiếp theo nếu cần.
 
 ## Trạng thái
 Arm A đã chạy ở 2 quy mô (debug 300 bước, và scaled 2000 bước/0.5GB). Arm B đã
