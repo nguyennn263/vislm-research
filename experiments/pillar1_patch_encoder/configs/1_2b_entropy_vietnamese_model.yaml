@@ -1,7 +1,7 @@
 # Câu hỏi con 1.2b — Entropy byte-tiếp-theo, model pretrain riêng tiếng Việt (plans/PLAN.md, Trụ cột 1)
 phase: phase-1-no-train
 status: chưa chạy
-model: NlpHUST/gpt2-vietnamese  # PhoGPT-4B lỗi tương thích transformers mới, xem vislm/tokenizers/bpe_baseline.py
+model: vinai/PhoGPT-4B  # on Kaggle pin transformers==4.46.3, see vislm/tokenizers/bpe_baseline.py
 compute: kaggle  # cần forward pass, ưu tiên free GPU thay vì tốn giờ máy RTX 24GB
 input_corpus: data/prepared/pillar1/syllable_boundary_sample_vi.txt  # PHẢI GIỐNG HỆT 1_2a để so sánh được
 metric: entropy_peak_vs_syllable_boundary_overlap

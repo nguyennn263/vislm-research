@@ -1,7 +1,7 @@
 # Câu hỏi con 1.1a — Từ ghép hiếm (plans/PLAN.md, Trụ cột 1)
 phase: phase-1-no-train
 status: chưa chạy
-tokenizer: NlpHUST/gpt2-vietnamese  # PhoGPT-4B lỗi tương thích transformers mới, xem vislm/tokenizers/bpe_baseline.py
+tokenizer: vinai/PhoGPT-4B  # on Kaggle pin transformers==4.46.3, see vislm/tokenizers/bpe_baseline.py
 input_wordlist: data/prepared/pillar1/rare_compounds_vi.txt  # cần tạo: danh sách từ ghép tần suất thấp
 metric: token_per_syllable_ratio
 threshold_pass: "> 2x so với văn bản sạch, phổ biến"

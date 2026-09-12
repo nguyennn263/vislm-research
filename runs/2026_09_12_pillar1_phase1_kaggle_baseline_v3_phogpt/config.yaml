@@ -1,0 +1,14 @@
+phase: phase-1-no-train
+pillar: 1
+questions: [1.1a, 1.1b, 1.1c, 1.1d, 1.2a, 1.2b]
+compute: kaggle (CPU)
+kernel: nguyennn263/vislm-pillar1-phase1-baseline
+kernel_version: 5
+note: real vinai/PhoGPT-4B (VinAI Research, has paper) instead of NlpHUST/gpt2-vietnamese
+      substitute used in v1/v2. transformers pinned to 4.46.3 to fix
+      StrictDataclassFieldValidationError on PhoGPT-4B's MPT config. Supersedes v1/v2
+      for 1.1/1.2b specifically; v1/v2 kept for the record.
+tokenizer_1_1: vinai/PhoGPT-4B
+model_1_2a: facebook/xglm-564M
+model_1_2b: vinai/PhoGPT-4B
+transformers_version: 4.46.3

@@ -2,13 +2,12 @@
 from transformers import AutoTokenizer
 
 
-def load(pretrained_name: str = "NlpHUST/gpt2-vietnamese"):
+def load(pretrained_name: str = "vinai/PhoGPT-4B"):
     """Load a tokenizer only (no model weights).
 
-    Default is NOT vinai/PhoGPT-4B (the name suggested in plans/PLAN.md): its MPT
-    config raises StrictDataclassFieldValidationError on current transformers
-    (attn_pdrop int vs float), confirmed when running the Kaggle baseline in
-    experiments/pillar1_patch_encoder/kaggle/. NlpHUST/gpt2-vietnamese is plain
-    GPT-2 BPE trained on Vietnamese text, no custom modeling code.
+    On Kaggle's default transformers build, PhoGPT-4B's MPT config raises
+    StrictDataclassFieldValidationError (attn_pdrop int vs float) - pin
+    `transformers==4.46.3` first (see experiments/pillar1_patch_encoder/kaggle/).
+    Works as-is with transformers>=4.57 locally.
     """
     return AutoTokenizer.from_pretrained(pretrained_name)

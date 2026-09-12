@@ -3,16 +3,15 @@ import argparse
 
 from transformers import AutoTokenizer
 
-# vinai/PhoGPT-4B's MPT config breaks on current transformers (see vislm/tokenizers/bpe_baseline.py)
 DEFAULT_MODELS = {
-    "gpt2_vi": "NlpHUST/gpt2-vietnamese",
+    "phogpt": "vinai/PhoGPT-4B",  # on Kaggle, pin transformers==4.46.3 first (see vislm/tokenizers/bpe_baseline.py)
     "phobert": "vinai/phobert-base",
 }
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", default="gpt2_vi", choices=list(DEFAULT_MODELS))
+    parser.add_argument("--model", default="phogpt", choices=list(DEFAULT_MODELS))
     parser.add_argument("--cache-dir", default=None)
     args = parser.parse_args()
 

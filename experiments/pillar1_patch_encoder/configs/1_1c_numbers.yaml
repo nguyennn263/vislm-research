@@ -1,7 +1,7 @@
 # Câu hỏi con 1.1c — Số liệu (plans/PLAN.md, Trụ cột 1)
 phase: phase-1-no-train
 status: chưa chạy
-tokenizer: NlpHUST/gpt2-vietnamese  # PhoGPT-4B lỗi tương thích transformers mới, xem vislm/tokenizers/bpe_baseline.py
+tokenizer: vinai/PhoGPT-4B  # on Kaggle pin transformers==4.46.3, see vislm/tokenizers/bpe_baseline.py
 input_wordlist: data/prepared/pillar1/numbers_vi.txt  # cần tạo: ngày tháng, tiền tệ, mã số
 metric: split_consistency  # tính nhất quán cách tách giữa các chuỗi số cùng dạng
 output: runs/pillar1_1_1c/metrics.jsonl
