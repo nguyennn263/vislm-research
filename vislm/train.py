@@ -4,6 +4,9 @@ Logs to <run_dir>/metrics.jsonl per the runs/ convention in plans/PLAN.md.
 
     python -m vislm.train experiments/pillar1_patch_encoder/configs/1_3_arm_A_bpe.yaml
     python -m vislm.train ...same... train.max_steps=2000 dataset_target_gb=5
+
+Resume an interrupted run (e.g. hit Kaggle's 12h session limit) with:
+    python -m vislm.train <config> resume_from=<run_dir>/checkpoints/latest.pt
 """
 import importlib
 import json
@@ -13,10 +16,12 @@ import time
 import torch
 import yaml
 
+from vislm import checkpoint
 from vislm.args import parse_args
 from vislm.backbones.models.blt_lm import BLTLanguageModel
 from vislm.backbones.models.transformer_lm import TransformerLM
 from vislm.data import iter_texts
+from vislm.lr_schedule import get_lr
 from vislm.tokenizers import syllable_seed
 
 
@@ -68,6 +73,15 @@ def batches(token_ids: torch.Tensor, seq_len: int, batch_size: int, device: str)
         yield xs.to(device), ys.to(device)
 
 
+def split_train_val(token_ids: torch.Tensor, val_fraction: float):
+    """Held-out val split is the LAST val_fraction of the stream - simple and
+    deterministic, no shuffling infra needed at this data scale."""
+    if not val_fraction:
+        return token_ids, None
+    n_val = int(len(token_ids) * val_fraction)
+    return token_ids[:-n_val], token_ids[-n_val:]
+
+
 def pick_device() -> str:
     """cuda can report available but still fail at the first real op (e.g. a GPU
     whose compute capability the installed torch build doesn't support - seen with
@@ -102,17 +116,35 @@ def pretrain_entropy_model(model: BLTLanguageModel, token_ids, cfg, device, mf):
     print(f"entropy model frozen, final pretrain loss {loss.item():.4f}")
 
 
+@torch.no_grad()
+def evaluate(model, val_ids, cfg, device, eval_steps):
+    model.eval()
+    losses = []
+    for xs, ys in batches(val_ids, cfg["model"]["max_seq_len"], cfg["train"]["batch_size"], device):
+        _, loss = model(xs, ys)
+        losses.append(loss.item())
+        if len(losses) >= eval_steps:
+            break
+    model.train()
+    return sum(losses) / len(losses) if losses else None
+
+
 def main():
     cfg = parse_args()
     torch.manual_seed(cfg.get("seed", 42))
     device = pick_device()
+    tcfg = cfg["train"]
 
     tok = load_tokenizer(cfg)
     all_ids = []
     for text in iter_texts(cfg["dataset"]):
         all_ids.extend(tok.encode(text, add_special_tokens=False))
     token_ids = torch.tensor(all_ids, dtype=torch.long)
-    print(f"loaded {len(token_ids)} tokens from {cfg['dataset']}")
+    train_ids, val_ids = split_train_val(token_ids, tcfg.get("val_fraction", 0.0))
+    print(
+        f"loaded {len(token_ids)} tokens from {cfg['dataset']} "
+        f"({len(train_ids)} train, {len(val_ids) if val_ids is not None else 0} val)"
+    )
 
     model = build_model(cfg, vocab_size=tok.vocab_size).to(device)
     n_params = model.num_params()
@@ -122,15 +154,30 @@ def main():
         f"params={n_params:,} latent_params={n_latent_params:,}"
     )
 
+    opt = torch.optim.AdamW(
+        [p for p in model.parameters() if p.requires_grad], lr=tcfg["lr"]
+    )
+
     run_dir = cfg.get("run_dir", "runs/debug_run")
     os.makedirs(run_dir, exist_ok=True)
     with open(os.path.join(run_dir, "config.yaml"), "w") as f:
         yaml.safe_dump(cfg, f, allow_unicode=True)
 
-    max_steps = cfg["train"]["max_steps"]
-    step = 0
-    t0 = time.time()
-    with open(os.path.join(run_dir, "metrics.jsonl"), "w") as mf:
+    max_steps = tcfg["max_steps"]
+    start_step = 0
+    resume_from = cfg.get("resume_from")
+    if resume_from:
+        state = checkpoint.load(resume_from, model, opt)
+        start_step = state["step"]
+        print(f"resumed from {resume_from} at step {start_step}")
+        # NOTE: data iteration restarts from the beginning of train_ids (deterministic,
+        # no shuffling), not from the exact batch the checkpoint stopped at - simplest
+        # correct thing at this data scale, though it means the first batches after
+        # resume repeat data already seen before the interruption. Step counter and LR
+        # schedule DO continue correctly from where they left off.
+
+    metrics_path = os.path.join(run_dir, "metrics.jsonl")
+    with open(metrics_path, "a" if resume_from else "w") as mf:
         mf.write(
             json.dumps(
                 {"event": "start", "params": n_params, "latent_params": n_latent_params, "device": device}
@@ -138,33 +185,56 @@ def main():
             + "\n"
         )
 
-        if isinstance(model, BLTLanguageModel):
-            pretrain_entropy_model(model, token_ids, cfg, device, mf)
+        if isinstance(model, BLTLanguageModel) and not resume_from:
+            pretrain_entropy_model(model, train_ids, cfg, device, mf)
 
-        opt = torch.optim.AdamW(
-            [p for p in model.parameters() if p.requires_grad], lr=cfg["train"]["lr"]
-        )
+        min_lr = tcfg.get("min_lr", tcfg["lr"])
+        warmup_steps = tcfg.get("warmup_steps", 0)
+        grad_clip = tcfg.get("grad_clip")
+        save_every = tcfg.get("save_every")
+        eval_every = tcfg.get("eval_every")
+        eval_steps = tcfg.get("eval_steps", 20)
+
+        step = start_step
+        t0 = time.time()
         while step < max_steps:
-            for xs, ys in batches(
-                token_ids, cfg["model"]["max_seq_len"], cfg["train"]["batch_size"], device
-            ):
+            for xs, ys in batches(train_ids, cfg["model"]["max_seq_len"], tcfg["batch_size"], device):
+                lr = get_lr(step, tcfg["lr"], min_lr, warmup_steps, max_steps)
+                for g in opt.param_groups:
+                    g["lr"] = lr
+
                 _, loss = model(xs, ys)
                 opt.zero_grad()
                 loss.backward()
+                if grad_clip:
+                    torch.nn.utils.clip_grad_norm_(
+                        [p for p in model.parameters() if p.requires_grad], grad_clip
+                    )
                 opt.step()
+
                 mf.write(
                     json.dumps(
-                        {"step": step, "loss": loss.item(), "elapsed_s": time.time() - t0}
+                        {"step": step, "loss": loss.item(), "lr": lr, "elapsed_s": time.time() - t0}
                     )
                     + "\n"
                 )
                 mf.flush()
                 if step % 10 == 0:
-                    print(f"step {step} loss {loss.item():.4f}")
+                    print(f"step {step} loss {loss.item():.4f} lr {lr:.2e}")
+
+                if val_ids is not None and eval_every and step > 0 and step % eval_every == 0:
+                    val_loss = evaluate(model, val_ids, cfg, device, eval_steps)
+                    mf.write(json.dumps({"eval_step": step, "val_loss": val_loss}) + "\n")
+                    print(f"step {step} val_loss {val_loss:.4f}")
+
+                if save_every and step > 0 and step % save_every == 0:
+                    checkpoint.save(run_dir, step, model, opt)
+
                 step += 1
                 if step >= max_steps:
                     break
 
+    checkpoint.save(run_dir, step, model, opt)
     print(f"done: {step} steps, final loss {loss.item():.4f}, params {n_params:,}")
 
 

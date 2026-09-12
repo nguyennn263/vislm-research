@@ -13,7 +13,30 @@ Chi tiết: xem [`plans/PLAN.md`](../plans/PLAN.md) — Trụ cột 1 (mục "C�
 Phase 1 phải có kết luận rõ ràng cho 1.1/1.2 (đạt hoặc không đạt tiêu chí đi tiếp) — không mở Arm B/C của 1.3 khi chưa biết BPE thất bại ở đâu và ranh giới âm tiết có ý nghĩa hay không.
 
 ## Compute
-Máy RTX 24GB (SSH) cho toàn bộ job train thật. Kaggle chỉ dùng để debug pipeline ở quy mô cực nhỏ trước khi chạy job đầy đủ trên máy 24GB (tránh tốn giờ máy riêng cho lỗi cài đặt).
+Kaggle GPU (free tier: ~30h/tuần, 12h/session, tối đa 2 session GPU song song) đủ dùng
+cho toàn bộ quy mô hiện tại (model vài triệu tham số, data dưới 1GB) — không nhất thiết
+phải chờ máy RTX 24GB. RTX 24GB chỉ thật sự cần khi model to hơn nhiều (cần >16GB VRAM)
+hoặc khi chạm giới hạn quota/session của Kaggle.
+
+## Hạ tầng training (checkpoint/resume/LR schedule/eval) — `vislm/train.py`
+Thêm để training "thuận tiện" hơn, học theo quy ước phổ biến (nanoGPT, Meta Lingua):
+- **Checkpoint + resume** (`vislm/checkpoint.py`) — lưu định kỳ (`train.save_every`) và
+  cuối run vào `<run_dir>/checkpoints/step_<N>.pt` + `latest.pt`. Resume bằng
+  `resume_from=<run_dir>/checkpoints/latest.pt` — quan trọng vì Kaggle giới hạn session
+  12h. **Lưu ý đã biết:** resume tiếp tục đúng step counter + LR schedule, nhưng data
+  iteration bắt đầu lại từ đầu `train_ids` (không nhớ đúng vị trí batch trước khi ngắt) —
+  đơn giản hoá chấp nhận được ở quy mô data hiện tại (không shuffle, không lặp nhiều lần).
+- **LR schedule** (`vislm/lr_schedule.py`) — warmup tuyến tính + cosine decay (kiểu
+  nanoGPT/Chinchilla), thay vì LR cố định như trước.
+- **Gradient clipping** (`train.grad_clip`) — thiếu ở bản đầu, có thể gây training không
+  ổn định khi scale lên nhiều bước hơn.
+- **Train/val split + eval định kỳ** (`train.val_fraction`, `eval_every`, `eval_steps`) —
+  giữ % cuối của data stream làm val (không train trên đó), đo val_loss định kỳ để biết
+  model có overfit lên corpus nhỏ khi lặp nhiều epoch không — trước đây chỉ có train loss.
+- Tất cả field mới đều có default hợp lý trong `configs/1_3_arm_{A,B,C}_*.yaml`, override
+  được qua `vislm/args.py` như các field khác.
+- Đã test local: cả Arm A và Arm B (có entropy model bị freeze) resume đúng, LR schedule
+  đúng pha khi resume, val_loss giảm cùng chiều train_loss (không có dấu hiệu bug).
 
 ## Dữ liệu
 Corpus pretraining đã chốt: **FineWeb2 tiếng Việt** (`HuggingFaceFW/fineweb-2`, config

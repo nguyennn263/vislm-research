@@ -38,8 +38,16 @@ patching:
 # đo chính xác (profiler) — xem docstring vislm/backbones/flops.py.
 train:
   lr: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 50
+  grad_clip: 1.0
   batch_size: 8
   max_steps: 200  # debug scale; giữ giống hệt Arm A/C khi so sánh thật
   entropy_pretrain_steps: 50  # train + freeze entropy model trước khi train latent transformer
+  val_fraction: 0.05
+  eval_every: 50
+  eval_steps: 20
+  save_every: 100
 seed: 42
 run_dir: runs/pillar1_1_3_arm_B_debug
+resume_from: null  # override: resume_from=<run_dir>/checkpoints/latest.pt để tiếp tục sau khi bị ngắt

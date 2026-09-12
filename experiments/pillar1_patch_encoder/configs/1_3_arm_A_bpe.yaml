@@ -17,7 +17,15 @@ model:
 # Arm B/C phải khớp num_params (in ra khi train.py chạy) với Arm A khi implement xong
 train:
   lr: 0.0003
+  min_lr: 0.00003        # cosine decay xuống lr/10
+  warmup_steps: 50
+  grad_clip: 1.0
   batch_size: 8
-  max_steps: 200  # debug scale; override lên nhiều hơn cho run thật, giữ giống hệt Arm B/C
+  max_steps: 200          # debug scale; override lên nhiều hơn cho run thật, giữ giống hệt Arm B/C
+  val_fraction: 0.05      # % cuối của data stream giữ làm val, không train trên đó
+  eval_every: 50
+  eval_steps: 20
+  save_every: 100         # checkpoint định kỳ — quan trọng vì Kaggle giới hạn session 12h
 seed: 42
 run_dir: runs/pillar1_1_3_arm_A_debug
+resume_from: null  # override: resume_from=<run_dir>/checkpoints/latest.pt để tiếp tục sau khi bị ngắt

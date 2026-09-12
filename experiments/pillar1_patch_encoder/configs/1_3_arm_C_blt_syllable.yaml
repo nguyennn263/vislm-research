@@ -22,10 +22,18 @@ patching:
   max_patch_len: 16
 train:
   lr: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 50
+  grad_clip: 1.0
   batch_size: 8
   max_steps: 200
   entropy_pretrain_steps: 50
+  val_fraction: 0.05
+  eval_every: 50
+  eval_steps: 20
+  save_every: 100
 seed: 42
 compare_against: 1_3_arm_B_blt  # C so B: riêng phần "mồi âm tiết" có cộng thêm giá trị không
 # LƯU Ý: không chạy Arm C trước khi Arm B đã có kết luận so với Arm A (xem plans/PLAN.md)
 run_dir: runs/pillar1_1_3_arm_C_debug
+resume_from: null  # override: resume_from=<run_dir>/checkpoints/latest.pt để tiếp tục sau khi bị ngắt
