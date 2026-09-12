@@ -3,14 +3,29 @@ phase: phase-2-small-train
 status: chưa chạy
 compute: rtx24gb_ssh  # override: compute=kaggle_debug dataset_target_gb=0.05 (see vislm/args.py)
 arm: C
-tokenizer: vislm.tokenizers.syllable_seed  # cắm thêm vào blt_patch_encoder (Arm B)
+tokenizer: vislm.tokenizers.blt_patch_encoder  # cắm seed_boundaries từ vislm/tokenizers/syllable_seed.py
 architecture: blt_entropy_patching_syllable_seeded
 # Biến số cố định giữa Arm A/B/C — PHẢI giống hệt 1_3_arm_A_bpe.yaml / 1_3_arm_B_blt.yaml:
 dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
-dataset_target_gb: null
-total_flops: null
-latent_transformer_params: null
+dataset_target_gb: 0.05
+model:
+  d_model: 256
+  n_layers: 6
+  n_heads: 8
+  max_seq_len: 512
+entropy_model:
+  d_model: 128
+  n_layers: 4
+  n_heads: 4
+patching:
+  entropy_threshold: 1.5  # PHẢI giống hệt 1_3_arm_B_blt.yaml — chỉ khác seed_boundaries_fn
+  max_patch_len: 16
+train:
+  lr: 0.0003
+  batch_size: 8
+  max_steps: 200
+  entropy_pretrain_steps: 50
 seed: 42
 compare_against: 1_3_arm_B_blt  # C so B: riêng phần "mồi âm tiết" có cộng thêm giá trị không
 # LƯU Ý: không chạy Arm C trước khi Arm B đã có kết luận so với Arm A (xem plans/PLAN.md)
-output: runs/pillar1_1_3_arm_C/
+run_dir: runs/pillar1_1_3_arm_C_debug

@@ -3,13 +3,30 @@ phase: phase-2-small-train
 status: chưa chạy
 compute: rtx24gb_ssh  # override: compute=kaggle_debug dataset_target_gb=0.05 (see vislm/args.py)
 arm: B
-tokenizer: vislm.tokenizers.blt_patch_encoder
-architecture: blt_entropy_patching  # đúng kiến trúc gốc facebookresearch/blt, không mồi âm tiết
+tokenizer: vislm.tokenizers.blt_patch_encoder  # byte-level, không cần tokenizer_name
+architecture: blt_entropy_patching  # đúng ý tưởng gốc facebookresearch/blt, không mồi âm tiết
 # Biến số cố định giữa Arm A/B/C — PHẢI giống hệt 1_3_arm_A_bpe.yaml:
 dataset: data/prepared/fineweb2_vi  # HuggingFaceFW/fineweb-2, config vie_Latn, xem setup/download_prepare_data.py
-dataset_target_gb: null
-total_flops: null
-latent_transformer_params: null
+dataset_target_gb: 0.05  # debug scale; override lên GB thật khi chạy full trên RTX 24GB
+model:
+  d_model: 256      # latent transformer — giữ giống Arm A để so compute
+  n_layers: 6
+  n_heads: 8
+  max_seq_len: 512  # tính theo BYTE, không phải patch
+entropy_model:
+  d_model: 128      # model entropy nhỏ hơn nhiều so với latent transformer, theo đúng thiết kế BLT
+  n_layers: 4
+  n_heads: 4
+patching:
+  entropy_threshold: 1.5  # TODO: chưa tune, cần quét theo phân phối entropy thật trên data
+  max_patch_len: 16
+# LƯU Ý: num_latent_params (in ra khi train.py chạy) hiện > Arm A vì entropy model +
+# local encoder/decoder cộng thêm tham số — chưa compute-matched thật sự, cần giảm
+# d_model/n_layers ở đây hoặc tăng ở Arm A để khớp trước khi so sánh kết quả nghiêm túc.
+train:
+  lr: 0.0003
+  batch_size: 8
+  max_steps: 200  # debug scale; giữ giống hệt Arm A/C khi so sánh thật
+  entropy_pretrain_steps: 50  # train + freeze entropy model trước khi train latent transformer
 seed: 42
-compare_against: 1_3_arm_A_bpe  # B so A: byte-level patching có ích gì không
-output: runs/pillar1_1_3_arm_B/
+run_dir: runs/pillar1_1_3_arm_B_debug
