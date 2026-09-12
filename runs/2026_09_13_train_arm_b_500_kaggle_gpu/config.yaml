@@ -1,0 +1,22 @@
+phase: phase-2-small-train
+purpose: fair 3-way comparison (Arm B), 500 steps / 0.2GB, full model config (max_seq_len=512, batch_size=8)
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b-500
+kernel_version: 1
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.2 GB streamed, 198,723,100 bytes
+tokenizer: vislm.tokenizers.blt_patch_encoder (raw bytes)
+model_params: 4668608
+latent_params: 3744192
+device: cuda (Tesla P100-PCIE-16GB)
+duration_per_step_s: ~0.817 (490 steps in 400.2s) - much slower than the 128-seq_len/
+                        batch=4 debug measurement (~0.256s/step): per-sequence Python
+                        loop cost scales with more patches per sequence at seq_len=512
+loss_nats_per_byte_last20avg: 2.483477306365967
+loss_nats_per_byte_min: 2.16444730758667
+bits_per_byte_last20avg: 3.583  # loss/ln(2), already per-byte
+bits_per_byte_min: 3.123
+note: Arm A (1.86-2.05 bits/byte) is clearly BETTER (lower) than Arm B (3.12-3.58
+      bits/byte) at this scale - BPE's pretrained subword vocab gives it a real head
+      start over a byte-level model learning from scratch at this small step count.
+      Not the same comparison as Arm B vs Arm C (same vocab, direct loss comparable) -
+      needs bits/byte for any Arm-A-involving comparison.

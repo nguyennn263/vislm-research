@@ -1,0 +1,14 @@
+phase: phase-2-small-train
+purpose: fair 3-way comparison (Arm A), 500 steps / 0.2GB, full model config (max_seq_len=512, batch_size=8)
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-a-500
+kernel_version: 1
+dataset: HuggingFaceFW/fineweb-2, config vie_Latn, 0.2 GB streamed, 39,047,523 tokens
+tokenizer: vinai/PhoGPT-4B
+model_params: 10113024
+device: cuda (Tesla P100-PCIE-16GB)
+duration_per_step_s: ~0.0676 (490 steps in 33.1s)
+loss_nats_per_token_last20avg: 7.202450847625732
+loss_nats_per_token_min: 6.515902519226074
+bits_per_byte_last20avg: 2.054  # loss/ln(2)/bytes_per_token(5.06)
+bits_per_byte_min: 1.858
