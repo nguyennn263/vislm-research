@@ -1,0 +1,23 @@
+phase: phase-2-small-train
+purpose: scale-up run (Arm B), 20000 steps / 0.5GB - 4x the 5000-step run
+compute: kaggle (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b-20000
+kernel_version: 1
+val_loss_bits_per_byte_curve:
+  step_1000: 3.421
+  step_5000: 3.165
+  step_10000: 3.130
+  step_15000: 2.938
+  step_19000: 2.895
+bpb_ratio_B_over_A_curve:
+  step_1000: 1.989
+  step_5000: 2.226
+  step_10000: 2.450
+  step_15000: 2.438
+  step_19000: 2.461
+note: "B/A ratio keeps widening even more strongly than at 5000 steps (was 1.83x->2.13x,
+      now 1.99x->2.46x over 19000 steps). Arm B also shows early signs of plateauing
+      around ~2.9 bpb from step 11000 onward (oscillating narrowly), while Arm A keeps
+      improving steadily - suggests Arm B may be hitting a capacity/architecture
+      ceiling at this model size, not just converging slower. See
+      phases/phase-2-small-train.md."
