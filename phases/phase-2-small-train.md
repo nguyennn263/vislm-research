@@ -227,22 +227,65 @@ hơn nhiều cho việc so xu hướng. Xem
    trắng bất kể entropy nói gì → patch ngắn hơn, nhiều patch hơn mỗi sequence → chậm hơn.
    Đây là hệ quả kiến trúc thật, không phải lỗi.
 
+## Scale-up x4: 20.000 bước / 0.5GB — xác nhận và làm rõ thêm xu hướng
+Cùng model size/entropy_pretrain_steps=500, chỉ tăng `max_steps` (200000→20000, gấp 4
+lần) và `dataset_target_gb` (0.3→0.5GB, đủ tránh lặp data ở scale này). Xem
+`runs/2026_09_13_train_arm_{a,b,c}_20000_kaggle_gpu/`.
+
+| bước | A (bpb) | B (bpb) | C (bpb) | B/A | C/A | C/B |
+|---|---|---|---|---|---|---|
+| 1000 | 1.720 | 3.421 | 3.159 | 1.989 | 1.837 | 0.923 |
+| 5000 | 1.422 | 3.165 | 3.054 | 2.226 | 2.148 | **0.965** |
+| 9000 | 1.295 | 3.026 | 2.900 | 2.337 | 2.239 | 0.958 |
+| 13000 | 1.224 | 2.937 | 2.794 | 2.399 | 2.283 | 0.951 |
+| 17000 | 1.187 | 2.906 | 2.743 | 2.449 | 2.311 | 0.944 |
+| 19000 | 1.177 | 2.895 | 2.720 | **2.461** | **2.312** | 0.940 |
+
+**Xác nhận và làm rõ thêm 3 điều so với lần 5.000 bước:**
+
+1. **A vs {B,C} tiếp tục giãn mạnh hơn nữa** — B/A lên tới 2.46x, C/A lên tới 2.31x (so
+   với 2.13x/2.03x ở 5.000 bước). Xu hướng này giờ đã nhất quán qua **3 lần scale liên
+   tiếp** (500→5.000→20.000 bước), không còn là nhiễu ngẫu nhiên của 1 lần chạy.
+2. **Arm B có dấu hiệu chững lại (gần plateau) quanh ~2.9 bpb** từ bước 11.000 trở đi
+   (dao động hẹp 2.98→2.89), trong khi **Arm A vẫn cải thiện đều đặn, chưa có dấu hiệu
+   plateau** (1.30→1.18, vẫn dốc). Arm C cải thiện chậm lại nhưng ít hơn Arm B (2.85→2.72,
+   vẫn còn dốc rõ hơn B). Cách đọc hợp lý: Arm A có nhiều "chỗ chứa" hơn để tiếp tục học
+   (phần lớn tham số nằm ở bảng embedding vocab lớn), trong khi model byte-level nhỏ hơn
+   có thể đang chạm giới hạn năng lực ở kích thước hiện tại — **đây là gợi ý cần scale
+   MODEL SIZE (không chỉ số bước) mới thấy được liệu BLT có bắt kịp không**, phù hợp với
+   cách paper BLT gốc thiết kế thí nghiệm scale (tăng cả model size lẫn data).
+3. **Sửa lại nhận định trước đó về C/B: KHÔNG đơn điệu thu hẹp về 1.0.** Ở 5.000 bước,
+   dữ liệu (0.915→0.956) trông giống đang tiến về 1.0 — nhưng nhìn xa hơn tới 20.000 bước,
+   tỷ lệ C/B đạt đỉnh ~0.965 quanh bước 5.000 rồi **giảm trở lại** xuống 0.940 (nghĩa là
+   lợi thế của C so B lại tăng nhẹ trở lại). Đây là bài học quan trọng: **đừng ngoại suy
+   xu hướng từ 1 đoạn ngắn của đường cong** — kết luận "mồi âm tiết chỉ giúp hội tụ nhanh
+   giai đoạn đầu" (rút ra sau lần 5.000 bước) là **quá vội, không đúng** khi nhìn đủ xa.
+   Với dữ liệu hiện có, đọc đúng hơn là: Arm C duy trì lợi thế ~4-8% so Arm B khá bền
+   vững, dao động chứ không hội tụ về 0.
+
 ## Trạng thái
 Cả 3 arm (A, B, C) đã viết xong, compute-matched (~1.06-1.14x FLOPs/byte giữa B/C và A),
 decoder Arm B/C đã tối ưu tốc độ (~6.4x ở scale debug), có checkpoint/resume/LR-schedule/
-eval, và đã train thật ở 3 quy mô tăng dần (30 bước, 500 bước, 5.000 bước) trên Kaggle
-GPU, cùng điều kiện mỗi lần. **Kết luận tạm thời cho câu hỏi con 1.3 (chưa phải cuối
-cùng):** ở quy mô hiện tại (model vài triệu tham số, tối đa 5.000 bước), BPE (Arm A) vẫn
-vượt trội byte-level (B, C) và khoảng cách CHƯA có dấu hiệu thu hẹp — trái với kỳ vọng
-"byte-level bắt kịp khi train lâu hơn". Trong nhóm byte-level, mồi âm tiết (Arm C) luôn
-tốt hơn entropy thuần (Arm B), nhưng lợi thế đó cũng đang thu hẹp dần.
+eval, và đã train thật ở 4 quy mô tăng dần (30, 500, 5.000, 20.000 bước) trên Kaggle GPU,
+cùng điều kiện mỗi lần.
 
-Còn thiếu trước khi kết luận thật cho 1.3: (1) quét lại `entropy_threshold` một cách hệ
-thống (chưa làm dù đã 3 lần train) — hiện vẫn dùng giá trị đo thô ban đầu; (2) chạy tới
-khi loss thật sự plateau (5.000 bước cả 3 arm vẫn đang giảm, chưa hội tụ) để biết xu
-hướng có đảo chiều ở phạm vi xa hơn không, hoặc chấp nhận kết luận "ở scale nhỏ BPE thắng"
-là câu trả lời hợp lệ cho 1.3 (không phải mọi RQ đều cần "thắng" — biết BPE thắng ở scale
-nhỏ cũng là kết luận có giá trị); (3) thử LR/warmup riêng cho BLT thay vì dùng chung với
-Arm A; (4) nhiều seed hơn để chắc chắn xu hướng không phải nhiễu; (5) áp dụng cách detect
-CODE_DIR động cho các notebook Kaggle cũ hơn (train_arm_{a,b,c}_debug,
-data_pipeline_smoke_test) nếu cần rerun. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
+**Kết luận cho câu hỏi con 1.3 ở phạm vi đã thử nghiệm (model vài triệu tham số, tới
+20.000 bước, ~10-30 phút mỗi arm ở scale nhỏ tới ~2.5 giờ ở scale lớn nhất) — đủ vững để
+coi là câu trả lời tạm thời có căn cứ, chưa phải cuối cùng:**
+- **BPE (Arm A) vượt trội byte-level (B, C) và khoảng cách GIÃN RA nhất quán qua 3 lần
+  scale liên tiếp** — không giống nhiễu ngẫu nhiên. Ở quy mô nhỏ này, khuyến nghị dùng
+  BPE, KHÔNG đầu tư thêm vào BLT trừ khi có compute để scale MODEL SIZE (không chỉ số
+  bước) — đây là biến chưa thử, và Arm B có dấu hiệu chạm trần năng lực gợi ý đây mới là
+  nút thắt thật, không phải "cần train lâu hơn."
+- **Trong nhóm byte-level, mồi âm tiết (Arm C) nhất quán tốt hơn entropy thuần (Arm B)**
+  qua mọi lần scale, lợi thế dao động 4-8%, không hội tụ về 0 — đủ chắc để giữ lại ý
+  tưởng "mồi âm tiết" nếu sau này có lý do quay lại đầu tư vào BLT.
+
+Còn thiếu nếu muốn kết luận chắc chắn hơn nữa cho 1.3: (1) thử tăng MODEL SIZE cho Arm
+B/C (giữ compute-matched) thay vì chỉ tăng số bước — đây là biến còn lại chưa cô lập thử;
+(2) quét lại `entropy_threshold` một cách hệ thống (vẫn dùng giá trị đo thô ban đầu qua
+cả 4 lần chạy); (3) thử LR/warmup riêng cho BLT thay vì dùng chung với Arm A; (4) nhiều
+seed hơn để chắc chắn xu hướng không phải nhiễu (mới có 1 seed cho mỗi scale); (5) áp
+dụng cách detect CODE_DIR động cho các notebook Kaggle cũ hơn
+(train_arm_{a,b,c}_debug, data_pipeline_smoke_test) nếu cần rerun. 2.1/2.2 (Trụ cột 2 —
+backbone SSM) chưa viết code.

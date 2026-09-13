@@ -1,0 +1,20 @@
+phase: phase-2-small-train
+purpose: scale-up run (Arm C), 20000 steps / 0.5GB - 4x the 5000-step run
+compute: kaggle (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-c-20000
+kernel_version: 1
+duration_s: ~9085 (19990 steps, ~151 min, matches the ~150min estimate)
+val_loss_bits_per_byte_curve:
+  step_1000: 3.159
+  step_5000: 3.054
+  step_10000: 2.999
+  step_15000: 2.785
+  step_19000: 2.720
+compare_against: runs/2026_09_13_train_arm_{a,b}_20000_kaggle_gpu
+note: "C/A also widens (1.84x->2.31x), same pattern as B/A. C/B ratio is NOT monotonic
+      like it looked at 5000 steps: rises from 0.923 (step 1000) to a peak ~0.965
+      (step 5000), then falls back to 0.940 by step 19000 - Arm C's relative advantage
+      over Arm B shrinks early then re-widens, settling near where it started rather
+      than converging to 1.0. Revises the 5000-step writeup's 'advantage keeps
+      shrinking toward 1.0' read - with more data that trend reversed. See
+      phases/phase-2-small-train.md for the full table and interpretation."
