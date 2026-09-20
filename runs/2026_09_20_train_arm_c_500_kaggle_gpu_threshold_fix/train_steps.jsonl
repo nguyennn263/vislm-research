@@ -1,0 +1,63 @@
+{"event": "start", "device": "cuda", "architecture": "blt_entropy_patching_syllable_seeded", "params": 4668608, "latent_params": 3744192}
+{"event": "entropy_pretrain_start", "steps": 500}
+{"event": "entropy_pretrain_done", "final_loss": 2.1045}
+{"step": 0, "loss": 5.5641, "lr": 6e-06}
+{"step": 10, "loss": 4.9081, "lr": 6.6e-05}
+{"step": 20, "loss": 4.5114, "lr": 0.000126}
+{"step": 30, "loss": 4.1559, "lr": 0.000186}
+{"step": 40, "loss": 3.6332, "lr": 0.000246}
+{"step": 50, "loss": 3.2448, "lr": 0.0003}
+{"step": 50, "val_loss": 3.3238}
+{"step": 60, "loss": 3.0157, "lr": 0.0003}
+{"step": 70, "loss": 2.9202, "lr": 0.000299}
+{"step": 80, "loss": 2.668, "lr": 0.000297}
+{"step": 90, "loss": 2.8332, "lr": 0.000295}
+{"step": 100, "loss": 2.5886, "lr": 0.000292}
+{"step": 100, "val_loss": 2.6872}
+{"step": 110, "loss": 2.6118, "lr": 0.000288}
+{"step": 120, "loss": 2.4334, "lr": 0.000284}
+{"step": 130, "loss": 2.3728, "lr": 0.000279}
+{"step": 140, "loss": 2.3679, "lr": 0.000274}
+{"step": 150, "loss": 2.3528, "lr": 0.000268}
+{"step": 150, "val_loss": 2.5408}
+{"step": 160, "loss": 2.2193, "lr": 0.000262}
+{"step": 170, "loss": 2.4542, "lr": 0.000255}
+{"step": 180, "loss": 2.3724, "lr": 0.000248}
+{"step": 190, "loss": 2.277, "lr": 0.00024}
+{"step": 200, "loss": 2.1794, "lr": 0.000232}
+{"step": 200, "val_loss": 2.4567}
+{"step": 210, "loss": 2.3858, "lr": 0.000224}
+{"step": 220, "loss": 2.2639, "lr": 0.000216}
+{"step": 230, "loss": 2.3086, "lr": 0.000207}
+{"step": 240, "loss": 2.1405, "lr": 0.000198}
+{"step": 250, "loss": 2.4378, "lr": 0.000188}
+{"step": 250, "val_loss": 2.4189}
+{"step": 260, "loss": 2.3129, "lr": 0.000179}
+{"step": 270, "loss": 2.3689, "lr": 0.00017}
+{"step": 280, "loss": 2.3903, "lr": 0.00016}
+{"step": 290, "loss": 2.4527, "lr": 0.000151}
+{"step": 300, "loss": 2.4082, "lr": 0.000142}
+{"step": 300, "val_loss": 2.3934}
+{"step": 310, "loss": 2.4763, "lr": 0.000132}
+{"step": 320, "loss": 2.2675, "lr": 0.000123}
+{"step": 330, "loss": 2.0991, "lr": 0.000114}
+{"step": 340, "loss": 1.9809, "lr": 0.000106}
+{"step": 350, "loss": 2.3144, "lr": 9.75e-05}
+{"step": 350, "val_loss": 2.4475}
+{"step": 360, "loss": 2.2582, "lr": 8.95e-05}
+{"step": 370, "loss": 2.3583, "lr": 8.19e-05}
+{"step": 380, "loss": 2.4077, "lr": 7.47e-05}
+{"step": 390, "loss": 2.2398, "lr": 6.79e-05}
+{"step": 400, "loss": 2.3927, "lr": 6.16e-05}
+{"step": 400, "val_loss": 2.3517}
+{"step": 410, "loss": 2.3063, "lr": 5.58e-05}
+{"step": 420, "loss": 2.4342, "lr": 5.05e-05}
+{"step": 430, "loss": 2.1922, "lr": 4.58e-05}
+{"step": 440, "loss": 2.3686, "lr": 4.17e-05}
+{"step": 450, "loss": 2.3861, "lr": 3.81e-05}
+{"step": 450, "val_loss": 2.3324}
+{"step": 460, "loss": 2.3168, "lr": 3.52e-05}
+{"step": 470, "loss": 2.1862, "lr": 3.3e-05}
+{"step": 480, "loss": 2.1383, "lr": 3.13e-05}
+{"step": 490, "loss": 2.132, "lr": 3.03e-05}
+{"event": "done", "n_steps": 500, "final_loss": 2.5224, "params": 4668608}

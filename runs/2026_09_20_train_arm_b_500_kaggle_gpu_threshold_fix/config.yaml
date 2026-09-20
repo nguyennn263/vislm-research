@@ -1,0 +1,18 @@
+phase: phase-2-small-train
+purpose: Rerun of the "fair 3-way comparison" 500-step/0.2GB Arm B run after fixing
+         entropy_threshold (3.7 -> 3.0) and bumping entropy_pretrain_steps (100 -> 500,
+         matching the value the threshold was calibrated against). See
+         phases/phase-2-small-train.md.
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b-500
+kernel_version: 2
+model_params: 4668608
+latent_params: 3744192
+device: cuda (Tesla P100-PCIE-16GB)
+loss_nats_last20avg: 2.393
+loss_nats_min: 2.049
+bits_per_byte_last20avg: 3.453  # was 3.583 pre-fix - meaningful improvement
+bits_per_byte_min: 2.956        # was 3.123 pre-fix
+note: With genuinely entropy-driven patching (not near-fixed-16-byte), Arm B improves
+      noticeably over the pre-fix run - see phase doc for the updated B/C comparison.
+compare_against: runs/2026_09_13_train_arm_b_500_kaggle_gpu (pre-fix, same scale)

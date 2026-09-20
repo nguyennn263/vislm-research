@@ -1,0 +1,18 @@
+phase: phase-2-small-train
+purpose: First 500-step/0.2GB comparison run of Arm D (bpe_guided patch boundaries, no
+         entropy model), same scale as the corrected Arm B/C 500-step reruns. See
+         phases/phase-2-small-train.md "Hướng cải thiện BLT sau khi có kết luận 1.3".
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-d-500
+kernel_version: 1
+model_params: (see runs/2026_09_20_train_arm_d_debug_kaggle_gpu, d_model=224, no entropy model)
+device: cuda (Tesla P100-PCIE-16GB)
+loss_nats_last20avg: 2.314
+loss_nats_min: 1.975
+bits_per_byte_last20avg: 3.338  # best byte-level result at this scale (essentially tied with B2's 3.343)
+bits_per_byte_min: 2.850
+note: BPE-guided boundaries (borrowing Arm A's tokenizer just for chunk positions, not its
+      vocab) match or slightly beat cross-attention (B2) at this scale, and beat both B and
+      C - AND it skips entropy_pretrain_steps entirely (cheaper). Best byte-level candidate
+      so far at this scale, still far behind Arm A (bits/byte 2.054 last20avg / 1.858 min).
+compare_against: [runs/2026_09_20_train_arm_b_500_kaggle_gpu_threshold_fix, runs/2026_09_20_train_arm_c_500_kaggle_gpu_threshold_fix]
