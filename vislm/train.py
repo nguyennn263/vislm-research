@@ -1,5 +1,6 @@
 """Config-driven trainer (see vislm/args.py). Supports architecture: transformer_standard
-(Arm A), blt_entropy_patching (Arm B), blt_entropy_patching_syllable_seeded (Arm C).
+(Arm A), blt_entropy_patching (Arm B), blt_entropy_patching_syllable_seeded (Arm C),
+blt_bpe_guided (Arm D - BPE-tokenizer-guided patch boundaries, byte vocab underneath).
 Logs to <run_dir>/metrics.jsonl per the runs/ convention in plans/PLAN.md.
 
     python -m vislm.train experiments/pillar1_patch_encoder/configs/1_3_arm_A_bpe.yaml
@@ -41,7 +42,7 @@ def build_model(cfg: dict, vocab_size: int):
             n_heads=m["n_heads"],
             max_seq_len=m["max_seq_len"],
         )
-    if arch in ("blt_entropy_patching", "blt_entropy_patching_syllable_seeded"):
+    if arch in ("blt_entropy_patching", "blt_entropy_patching_syllable_seeded", "blt_bpe_guided"):
         e = cfg.get("entropy_model", {})
         p = cfg.get("patching", {})
         return BLTLanguageModel(
@@ -49,11 +50,15 @@ def build_model(cfg: dict, vocab_size: int):
             n_layers=m["n_layers"],
             n_heads=m["n_heads"],
             max_seq_len=m["max_seq_len"],
+            max_patch_len=p.get("max_patch_len", 16),
+            boundary_mode="bpe_guided" if arch == "blt_bpe_guided" else "entropy",
             entropy_d_model=e.get("d_model", 128),
             entropy_n_layers=e.get("n_layers", 4),
             entropy_n_heads=e.get("n_heads", 4),
             entropy_threshold=p.get("entropy_threshold", 1.5),
-            max_patch_len=p.get("max_patch_len", 16),
+            bpe_tokenizer_name=p.get("bpe_tokenizer_name"),
+            encoder_type=cfg.get("encoder_type", "mean_pool"),
+            n_encoder_layers=cfg.get("n_encoder_layers", 2),
             seed_boundaries_fn=(
                 syllable_seed.seed_boundaries
                 if arch == "blt_entropy_patching_syllable_seeded"
@@ -185,7 +190,7 @@ def main():
             + "\n"
         )
 
-        if isinstance(model, BLTLanguageModel) and not resume_from:
+        if isinstance(model, BLTLanguageModel) and model.entropy_model is not None and not resume_from:
             pretrain_entropy_model(model, train_ids, cfg, device, mf)
 
         min_lr = tcfg.get("min_lr", tcfg["lr"])

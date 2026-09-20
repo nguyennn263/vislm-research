@@ -18,7 +18,7 @@ entropy_model:
   n_layers: 4
   n_heads: 4
 patching:
-  entropy_threshold: 3.7  # PHẢI giống hệt 1_3_arm_B_blt.yaml — chỉ khác seed_boundaries_fn
+  entropy_threshold: 3.0  # PHẢI giống hệt 1_3_arm_B_blt.yaml — chỉ khác seed_boundaries_fn (SỬA: xem note ở đó, 3.7 cũ bị lỗi hiệu chỉnh)
   max_patch_len: 16
 train:
   lr: 0.0003

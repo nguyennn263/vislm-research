@@ -1,0 +1,49 @@
+# Câu hỏi con 1.3, Arm B2 — giống hệt Arm B (entropy thuần) nhưng local encoder dùng
+# cross-attention thay vì mean-pool, đúng thiết kế gốc paper BLT (Pagnoni et al.) thay
+# vì bản rút gọn ban đầu. Đổi ĐÚNG 1 biến so với Arm B để cô lập hiệu ứng riêng của
+# cross-attention — xem phases/phase-2-small-train.md.
+phase: phase-2-small-train
+status: chưa chạy
+compute: rtx24gb_ssh  # override: compute=kaggle_debug dataset_target_gb=0.05 (see vislm/args.py)
+arm: B2
+tokenizer: vislm.tokenizers.blt_patch_encoder
+architecture: blt_entropy_patching
+# Mọi thứ khác PHẢI giống hệt 1_3_arm_B_blt.yaml — chỉ khác encoder_type:
+dataset: data/prepared/fineweb2_vi
+dataset_target_gb: 0.05
+model:
+  # d_model=200 (không phải 192 như Arm B) — cross-attention encoder thêm tham số thật.
+  # SỬA sau khi entropy_threshold được hiệu chỉnh lại (3.7 -> 3.0, xem 1_3_arm_B_blt.yaml):
+  # patch trung bình đổi (~4.3 byte thay vì ~6), nên FLOPs/byte cũng đổi theo — đo lại bằng
+  # measure_compute_match.py: 176 (giá trị cũ) giờ chỉ còn 0.72x Arm A (quá nhẹ, KHÔNG còn
+  # compute-matched), 200 cho 0.97x — trong ngưỡng ±20%. Đây là lý do so B với B2 chỉ hợp lệ
+  # nếu coi cả 2 đều compute-matched với A riêng biệt, không phải so d_model bằng nhau.
+  d_model: 200
+  n_layers: 6
+  n_heads: 8
+  max_seq_len: 512
+entropy_model:
+  d_model: 128
+  n_layers: 4
+  n_heads: 4
+patching:
+  entropy_threshold: 3.0  # PHẢI giống hệt 1_3_arm_B_blt.yaml — xem note ở đó (SỬA: 3.7 cũ bị lỗi hiệu chỉnh)
+  max_patch_len: 16
+encoder_type: cross_attention  # KHÁC DUY NHẤT so với Arm B (Arm B: mean_pool)
+n_encoder_layers: 2
+train:
+  lr: 0.0003
+  min_lr: 0.00003
+  warmup_steps: 50
+  grad_clip: 1.0
+  batch_size: 8
+  max_steps: 200
+  entropy_pretrain_steps: 50
+  val_fraction: 0.05
+  eval_every: 50
+  eval_steps: 20
+  save_every: 100
+seed: 42
+compare_against: 1_3_arm_B_blt  # B2 vs B: riêng cross-attention có cải thiện gì không, tách khỏi mọi biến khác
+resume_from: null
+run_dir: runs/pillar1_1_3_arm_B2_debug
