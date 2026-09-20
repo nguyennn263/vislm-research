@@ -1,0 +1,16 @@
+phase: phase-2-small-train
+purpose: Rerun of the 5000-step/0.3GB scale-up Arm C run after fixing entropy_threshold
+         (3.7 -> 3.0). entropy_pretrain_steps stayed 500 (unchanged from the original
+         5000-step run). See phases/phase-2-small-train.md.
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-c-5000
+kernel_version: 2
+model_params: 4668608
+latent_params: 3744192
+device: cuda (Tesla P100-PCIE-16GB)
+val_bits_per_byte_by_step: {500: 3.290, 1000: 3.167, 2000: 3.091, 3000: 3.059, 4000: 3.014, 4500: 3.014}
+note: Barely changed vs the pre-fix run (was 3.292 -> 3.016 at the same steps) - confirms
+      Arm C was always largely insensitive to the entropy_threshold bug. Combined with
+      Arm B's big improvement, the C-over-B advantage nearly disappears by step 4500
+      (C/B ratio 0.956 pre-fix -> 0.993 post-fix, i.e. ~0.7% left, not ~4-8%).
+compare_against: runs/2026_09_13_train_arm_c_5000_kaggle_gpu (pre-fix, same scale)
