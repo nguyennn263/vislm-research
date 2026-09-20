@@ -1,0 +1,18 @@
+phase: phase-2-small-train
+purpose: First 500-step/0.2GB comparison run of Arm B2 (cross_attention local encoder),
+         same scale/entropy_pretrain_steps/entropy_threshold as the corrected Arm B/C
+         500-step reruns. See phases/phase-2-small-train.md "Hướng cải thiện BLT sau khi
+         có kết luận 1.3".
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b2-500
+kernel_version: 1
+model_params: (see runs/2026_09_20_train_arm_b2_debug_kaggle_gpu, d_model=200)
+device: cuda (Tesla P100-PCIE-16GB)
+loss_nats_last20avg: 2.317
+loss_nats_min: 1.925
+bits_per_byte_last20avg: 3.343  # best byte-level result at this scale (vs B 3.453, C 3.367)
+bits_per_byte_min: 2.778
+note: Cross-attention encoder beats both entropy-only (B) and syllable-seeded (C) at this
+      scale - the "borrow the paper's real encoder design" direction shows a real, if
+      modest, improvement.
+compare_against: [runs/2026_09_20_train_arm_b_500_kaggle_gpu_threshold_fix, runs/2026_09_20_train_arm_c_500_kaggle_gpu_threshold_fix]
