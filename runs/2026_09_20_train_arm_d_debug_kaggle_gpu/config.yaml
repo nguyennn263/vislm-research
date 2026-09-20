@@ -1,0 +1,15 @@
+phase: phase-2-small-train
+purpose: First real Kaggle GPU run of Arm D (blt_bpe_guided, patch boundaries from the
+         real PhoGPT-4B BPE tokenizer, no entropy model) - 30 steps / 50MB smoke test to
+         verify the pipeline end-to-end on real hardware (forward/backward already
+         verified locally). See phases/phase-2-small-train.md "Hướng cải thiện BLT sau khi
+         có kết luận 1.3".
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-d-debug
+kernel_version: 1
+model_params: 4977504
+latent_params: 4977504
+device: cuda (Tesla P100-PCIE-16GB)
+result: loss 5.563 -> 4.082 over 30 steps, no errors. latent_params == params confirms no
+        entropy-model overhead, as designed.
+compare_against: runs/2026_09_20_train_arm_b_debug_kaggle_gpu_threshold_fix (same scale, entropy-based boundaries)

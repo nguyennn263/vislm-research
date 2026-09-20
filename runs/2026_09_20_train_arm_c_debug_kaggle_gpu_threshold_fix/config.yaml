@@ -1,0 +1,12 @@
+phase: phase-2-small-train
+purpose: Rerun Arm C debug (30 steps / 50MB) after fixing entropy_threshold (3.7 -> 3.0,
+         see phases/phase-2-small-train.md "Phát hiện: entropy_threshold bị hiệu chỉnh
+         sai") - verifies the corrected config still runs end-to-end on real Kaggle GPU.
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-c-debug
+kernel_version: 2
+model_params: 4545728
+latent_params: 3670464
+device: cuda (Tesla P100-PCIE-16GB)
+result: loss 5.620 -> 4.295 over 30 steps, no errors - config still valid after threshold fix
+compare_against: runs/2026_09_13_train_arm_c_debug_kaggle_gpu (pre-fix)

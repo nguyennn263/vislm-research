@@ -322,9 +322,20 @@ Sau khi thấy BPE thắng rõ ở quy mô hiện tại, tìm hướng cải thi
   `num_latent_params == num_params`, đã verify local. Đã verify: forward/backward đúng,
   regression local pass, compute-matched 0.97x Arm A ở `d_model=224`.
 
-Cả 2 đều mới chỉ setup + verify local (forward/backward, 10 bước regression, compute-match)
-— **chưa chạy bất kỳ lần train thật nào trên Kaggle**, đợi xác nhận trước khi launch (theo
-yêu cầu của user).
+**Đã train thật debug-scale (30 bước / 50MB) trên Kaggle GPU (P100) cho cả 4 config** — xem
+`runs/2026_09_20_train_arm_{b,c}_debug_kaggle_gpu_threshold_fix/` (Arm B/C sau khi sửa
+threshold) và `runs/2026_09_20_train_arm_{b2,d}_debug_kaggle_gpu/` (2 hướng cải thiện mới).
+Cả 4 chạy sạch trên `device=cuda`, không lỗi, loss giảm đều:
+
+| | Arm B (sửa) | Arm C (sửa) | Arm B2 (cross-attn) | Arm D (bpe-guided) |
+|---|---|---|---|---|
+| params | 4.55M | 4.55M | 5.82M | 4.98M |
+| loss đầu → cuối | 5.608 → 4.447 | 5.620 → 4.295 | 5.518 → 4.037 | 5.563 → 4.082 |
+
+Arm D xác nhận đúng thiết kế trên GPU thật: `latent_params == params` (không có entropy
+model, không tốn compute pretrain nó). Đây mới là smoke-test 30 bước — đủ để xác nhận
+pipeline chạy đúng đầu-cuối trên GPU thật, CHƯA đủ để so sánh có ý nghĩa (cần scale lên
+500+ bước như đã làm với Arm A/B/C ban đầu).
 
 ## Trạng thái
 Cả 3 arm gốc (A, B, C) đã viết xong, compute-matched, decoder Arm B/C đã tối ưu tốc độ
