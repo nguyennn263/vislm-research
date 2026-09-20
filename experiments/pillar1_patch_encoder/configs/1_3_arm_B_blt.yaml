@@ -22,13 +22,15 @@ entropy_model:
   n_layers: 4
   n_heads: 4
 patching:
-  # Đo thật trên data local (100-150 bước pretrain, mẫu 500-2MB): entropy trung bình
-  # ~3.07, median ~2.96 — ngưỡng 1.5 ban đầu quá thấp, gây vỡ patch = 1 byte gần như
-  # toàn bộ. 3.7 cho avg patch dao động 2.2-6 byte tuỳ mẫu đo/số bước pretrain (RẤT nhạy
-  # quanh vùng entropy trung bình) — coi là điểm bắt đầu hợp lý, KHÔNG phải giá trị cuối;
-  # cần đo lại bằng experiments/pillar1_patch_encoder/measure_compute_match.py sau khi
-  # entropy model đã pretrain đủ `train.entropy_pretrain_steps` ở scale thật.
-  entropy_threshold: 3.7
+  # SỬA (xem sweep_entropy_threshold.py + phases/phase-2-small-train.md): giá trị 3.7
+  # trước đây được hiệu chỉnh khi entropy model CHƯA train đủ (~100-150 bước ad-hoc).
+  # Khi entropy model được train đúng 500 bước (= entropy_pretrain_steps thật dùng ở
+  # dưới), threshold=3.7 khiến avg patch length ~14.9 byte — gần chạm trần max_patch_len
+  # (16), nghĩa là gần như KHÔNG còn cắt theo entropy nữa mà cắt cố định mỗi 16 byte.
+  # Quét lại có hệ thống (8 cửa sổ held-out, entropy model train đủ 500 bước) cho
+  # threshold=3.0 -> avg patch ~4.33 byte, khớp mục tiêu ~5.06 byte/patch (bytes/token
+  # thật của Arm A). Đây là giá trị đã sửa, dùng cho mọi lần chạy Arm B/C từ nay.
+  entropy_threshold: 3.0
   max_patch_len: 16
 # Compute-matching: đo bằng measure_compute_match.py (heuristic 6*params FLOPs/byte, xem
 # vislm/backbones/flops.py) — d_model=256 (bằng Arm A) cho Arm B ~1.9x FLOPs/byte Arm A

@@ -23,13 +23,24 @@ def arm_a_flops_per_byte(model, bytes_per_token: float) -> float:
 
 
 def blt_flops_per_byte(model, avg_bytes_per_patch: float) -> float:
-    """model: BLTLanguageModel. avg_bytes_per_patch: measured by running the patcher
-    over a real sample (depends on entropy_threshold/max_patch_len) - see
-    measure_avg_patch_length() below."""
+    """model: BLTLanguageModel (any boundary_mode/encoder_type). avg_bytes_per_patch:
+    measured by running the patcher over a real sample - see measure_avg_patch_length()
+    below. Encoder cost (mean_pool: ~free; cross_attention: real extra params) is
+    charged per PATCH like the latent transformer, since it runs once per patch too."""
     latent_params = sum(count_params(b) for b in model.latent_blocks)
     decoder_params = sum(count_params(b) for b in model.decoder_blocks)
-    per_byte_params = decoder_params + count_params(model.local_encoder_proj)
-    return flops_per_step(latent_params) / avg_bytes_per_patch + flops_per_step(per_byte_params)
+
+    if model.encoder_type == "cross_attention":
+        encoder_params = count_params(model.encoder_query_proj) + sum(
+            count_params(b) for b in model.encoder_blocks
+        )
+        per_patch_params = latent_params + encoder_params
+        per_byte_params = decoder_params
+    else:
+        per_patch_params = latent_params
+        per_byte_params = decoder_params + count_params(model.local_encoder_proj)
+
+    return flops_per_step(per_patch_params) / avg_bytes_per_patch + flops_per_step(per_byte_params)
 
 
 def measure_avg_patch_length(model, byte_ids_1d) -> float:

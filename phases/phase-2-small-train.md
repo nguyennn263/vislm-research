@@ -263,29 +263,96 @@ lần) và `dataset_target_gb` (0.3→0.5GB, đủ tránh lặp data ở scale n
    Với dữ liệu hiện có, đọc đúng hơn là: Arm C duy trì lợi thế ~4-8% so Arm B khá bền
    vững, dao động chứ không hội tụ về 0.
 
+## Phát hiện: `entropy_threshold` bị hiệu chỉnh sai trong TOÀN BỘ các lần chạy 500/5.000/20.000 bước ở trên (đã sửa)
+Sau khi có kết luận sơ bộ ở trên, đi tìm hướng cải thiện BLT thì phát hiện ra lỗi hiệu
+chỉnh: `entropy_threshold=3.7` (dùng xuyên suốt mọi lần chạy Arm B/C từ đầu tới giờ, kể cả
+3 lần scale-up 500/5.000/20.000 bước) **được chọn khi entropy model CHƯA train đủ** (chỉ
+~100-150 bước ad-hoc lúc kiểm tra thủ công ban đầu). Thực tế mọi lần train thật đều dùng
+`entropy_pretrain_steps=500` (override qua CLI) — dựng công cụ đo lại có hệ thống
+(`experiments/pillar1_patch_encoder/sweep_entropy_threshold.py`, quét 11 giá trị threshold,
+đo trên 8 cửa sổ held-out sau khi entropy model đã train đủ 500 bước) thì thấy:
+
+| threshold | avg patch length (byte) |
+|---|---|
+| 1.5 | ~1.4 |
+| 3.0 | **4.33 (gần khớp mục tiêu 5.06)** |
+| **3.7 (giá trị đã dùng)** | **~14.89 (gần chạm trần max_patch_len=16)** |
+| 4.5 | ~16.0 (chạm trần hoàn toàn) |
+
+**Ý nghĩa:** ở threshold=3.7, một khi entropy model học đủ tốt, entropy hiếm khi vượt
+ngưỡng — nghĩa là patch gần như luôn bị cắt bởi giới hạn cứng `max_patch_len=16`, không
+phải bởi tín hiệu entropy nữa. Nói cách khác: **toàn bộ kết quả Arm B/C ở 500/5.000/20.000
+bước phía trên thực chất đang so sánh BPE với một BLT gần-như-cắt-cố-định-16-byte, không
+phải BLT "tự quyết định điểm cắt" như dự định ban đầu.** Điều này KHÔNG làm sai hướng kết
+luận chính (BPE vẫn thắng, khoảng cách vẫn giãn ra theo compute — hai điều này không phụ
+thuộc vào patch có "động" thật hay không), nhưng có nghĩa là: (a) so sánh Arm C vs Arm B
+(mồi âm tiết vs entropy thuần) có thể chưa công bằng, vì "entropy thuần" ở đây gần như
+không thật sự phát huy tác dụng; (b) mọi diễn giải kiểu "model tự học cắt theo entropy" ở
+các mục trên (khi giải thích cho user) mô tả đúng THIẾT KẾ nhưng KHÔNG đúng HÀNH VI THỰC TẾ
+đã xảy ra trong các lần train đó.
+
+**Đã sửa:** `entropy_threshold: 3.7 → 3.0` trong `1_3_arm_B_blt.yaml`, `1_3_arm_C_blt_syllable.yaml`,
+`1_3_arm_B2_cross_attention.yaml` (threshold=3.0 cho avg patch ~4.33 byte, khớp mục tiêu
+~5.06 byte/patch = bytes/token thật của Arm A). Đo lại compute-matching với threshold mới
+(`measure_compute_match.py`) — Arm B vẫn trong ngưỡng (0.80x Arm A), Arm B2 cần tăng
+`d_model` (176→200, xem `1_3_arm_B2_cross_attention.yaml`) để về lại 0.97x, Arm D không đổi
+(dùng `bpe_guided`, không phụ thuộc `entropy_threshold`). Đã chạy lại regression 10 bước
+local cho cả 4 config (B/B2/C/D) — không lỗi. **Chưa train lại 500/5.000/20.000 bước thật
+trên Kaggle với threshold đã sửa** — cần làm việc này trước khi coi kết luận 1.3 là chắc
+chắn (patch "động" thật sự có thể cho kết quả khác so với "cắt cố định 16 byte" ở trên).
+
+## Hướng cải thiện BLT sau khi có kết luận 1.3 sơ bộ (đã setup, CHƯA train)
+Sau khi thấy BPE thắng rõ ở quy mô hiện tại, tìm hướng cải thiện byte-level thay vì bỏ hẳn
+— 2 hướng độc lập, mỗi hướng đổi ĐÚNG 1 biến so với Arm B để cô lập tác dụng riêng:
+
+- **Arm B2 — local encoder dùng cross-attention thay vì mean-pool**
+  (`1_3_arm_B2_cross_attention.yaml`, `compare_against: 1_3_arm_B_blt`). Đây là thiết kế
+  ĐÚNG theo paper BLT gốc (Pagnoni et al.) — bản rút gọn ban đầu ở đây dùng mean-pool đơn
+  giản hơn. Thêm `CrossAttention`/`CrossAttentionBlock` (`vislm/backbones/modules/transformer_block.py`)
+  và nhánh `encoder_type="cross_attention"` trong `BLTLanguageModel._encode_patches()`
+  (`vislm/backbones/models/blt_lm.py`). Đã verify: forward/backward chạy đúng, regression
+  local pass, compute-matched 0.97x Arm A ở `d_model=200`.
+- **Arm D — dùng ranh giới của BPE tokenizer thật, KHÔNG dùng vocab/embedding của nó**
+  (`1_3_arm_D_bpe_guided.yaml`, `compare_against: [1_3_arm_A_bpe, 1_3_arm_B_blt]`). Lấy ý
+  tưởng "mượn cắt cụm, không mượn từ vựng" từ paper Super Tiny Language Models
+  (arXiv:2405.14159): vẫn byte-level (vocab=256), nhưng dùng chính tokenizer PhoGPT-4B của
+  Arm A (`return_offsets_mapping`) để tìm điểm cắt patch thay vì entropy model tự học —
+  `vislm/backbones/modules/patching.py::bpe_guided_patch_lengths()`. Lợi ích phụ: bỏ hẳn
+  bước `entropy_pretrain_steps` (không cần entropy model), tiết kiệm compute thật —
+  `num_latent_params == num_params`, đã verify local. Đã verify: forward/backward đúng,
+  regression local pass, compute-matched 0.97x Arm A ở `d_model=224`.
+
+Cả 2 đều mới chỉ setup + verify local (forward/backward, 10 bước regression, compute-match)
+— **chưa chạy bất kỳ lần train thật nào trên Kaggle**, đợi xác nhận trước khi launch (theo
+yêu cầu của user).
+
 ## Trạng thái
-Cả 3 arm (A, B, C) đã viết xong, compute-matched (~1.06-1.14x FLOPs/byte giữa B/C và A),
-decoder Arm B/C đã tối ưu tốc độ (~6.4x ở scale debug), có checkpoint/resume/LR-schedule/
-eval, và đã train thật ở 4 quy mô tăng dần (30, 500, 5.000, 20.000 bước) trên Kaggle GPU,
-cùng điều kiện mỗi lần.
+Cả 3 arm gốc (A, B, C) đã viết xong, compute-matched, decoder Arm B/C đã tối ưu tốc độ
+(~6.4x ở scale debug), có checkpoint/resume/LR-schedule/eval, và đã train thật ở 4 quy mô
+tăng dần (30, 500, 5.000, 20.000 bước) trên Kaggle GPU — nhưng **với `entropy_threshold`
+sau này phát hiện bị hiệu chỉnh sai** (xem mục ngay trên), nên các con số bpb cụ thể ở các
+lần chạy đó cần được coi là "BPE vs BLT-gần-như-cắt-cố-định", chưa phải "BPE vs BLT-cắt-động-thật-sự".
+2 arm cải thiện mới (B2 — cross-attention encoder, D — BPE-guided boundaries) đã setup +
+verify local xong, sẵn sàng train, đang chờ xác nhận.
 
-**Kết luận cho câu hỏi con 1.3 ở phạm vi đã thử nghiệm (model vài triệu tham số, tới
-20.000 bước, ~10-30 phút mỗi arm ở scale nhỏ tới ~2.5 giờ ở scale lớn nhất) — đủ vững để
-coi là câu trả lời tạm thời có căn cứ, chưa phải cuối cùng:**
+**Kết luận cho câu hỏi con 1.3 ở phạm vi đã thử nghiệm — vẫn tạm thời có căn cứ cho phần
+BPE vs byte-level nói chung, nhưng phần "entropy thuần vs mồi âm tiết" cần train lại:**
 - **BPE (Arm A) vượt trội byte-level (B, C) và khoảng cách GIÃN RA nhất quán qua 3 lần
-  scale liên tiếp** — không giống nhiễu ngẫu nhiên. Ở quy mô nhỏ này, khuyến nghị dùng
-  BPE, KHÔNG đầu tư thêm vào BLT trừ khi có compute để scale MODEL SIZE (không chỉ số
-  bước) — đây là biến chưa thử, và Arm B có dấu hiệu chạm trần năng lực gợi ý đây mới là
-  nút thắt thật, không phải "cần train lâu hơn."
-- **Trong nhóm byte-level, mồi âm tiết (Arm C) nhất quán tốt hơn entropy thuần (Arm B)**
-  qua mọi lần scale, lợi thế dao động 4-8%, không hội tụ về 0 — đủ chắc để giữ lại ý
-  tưởng "mồi âm tiết" nếu sau này có lý do quay lại đầu tư vào BLT.
+  scale liên tiếp** — không giống nhiễu ngẫu nhiên, và kết luận này không phụ thuộc vào
+  lỗi threshold (cắt cố định 16 byte hay cắt động thì BPE vẫn thắng ở quy mô này). Ở quy
+  mô nhỏ này, khuyến nghị dùng BPE, KHÔNG đầu tư thêm vào BLT trừ khi có compute để scale
+  MODEL SIZE (không chỉ số bước).
+- **"Mồi âm tiết (C) tốt hơn entropy thuần (B)" — cần train lại để xác nhận**, vì phát
+  hiện threshold ở trên cho thấy "entropy thuần" trong các lần chạy cũ gần như không hoạt
+  động như thiết kế (gần-cắt-cố-định). Giữ nguyên như một giả thuyết đáng tin (có cơ sở lý
+  thuyết từ 1.2a/1.2b), không phải kết luận đã xác nhận.
 
-Còn thiếu nếu muốn kết luận chắc chắn hơn nữa cho 1.3: (1) thử tăng MODEL SIZE cho Arm
-B/C (giữ compute-matched) thay vì chỉ tăng số bước — đây là biến còn lại chưa cô lập thử;
-(2) quét lại `entropy_threshold` một cách hệ thống (vẫn dùng giá trị đo thô ban đầu qua
-cả 4 lần chạy); (3) thử LR/warmup riêng cho BLT thay vì dùng chung với Arm A; (4) nhiều
-seed hơn để chắc chắn xu hướng không phải nhiễu (mới có 1 seed cho mỗi scale); (5) áp
-dụng cách detect CODE_DIR động cho các notebook Kaggle cũ hơn
-(train_arm_{a,b,c}_debug, data_pipeline_smoke_test) nếu cần rerun. 2.1/2.2 (Trụ cột 2 —
-backbone SSM) chưa viết code.
+Còn thiếu nếu muốn kết luận chắc chắn hơn nữa cho 1.3: (1) train lại Arm B/C với
+`entropy_threshold` đã sửa (3.0) ở scale tương đương (500/5.000 bước) để xem kết luận C>B
+có đứng vững khi patch thật sự "động" không; (2) train Arm B2 (cross-attention) và Arm D
+(bpe-guided boundaries) — 2 hướng cải thiện đã setup xong, xem BLT có bắt kịp BPE hơn
+không; (3) thử tăng MODEL SIZE cho Arm B/C (giữ compute-matched) thay vì chỉ tăng số bước;
+(4) thử LR/warmup riêng cho BLT thay vì dùng chung với Arm A; (5) nhiều seed hơn để chắc
+chắn xu hướng không phải nhiễu (mới có 1 seed cho mỗi scale); (6) áp dụng cách detect
+CODE_DIR động cho các notebook Kaggle cũ hơn (train_arm_{a,b,c}_debug,
+data_pipeline_smoke_test) nếu cần rerun. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
