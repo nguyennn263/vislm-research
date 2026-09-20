@@ -1,0 +1,14 @@
+phase: phase-2-small-train
+purpose: Rerun of the 5000-step/0.3GB scale-up Arm B run after fixing entropy_threshold
+         (3.7 -> 3.0). entropy_pretrain_steps stayed 500 (unchanged from the original
+         5000-step run). See phases/phase-2-small-train.md.
+compute: kaggle_debug (GPU, P100, torch 2.7.1+cu126)
+kernel: nguyennn263/vislm-train-arm-b-5000
+kernel_version: 2
+model_params: 4668608
+latent_params: 3744192
+device: cuda (Tesla P100-PCIE-16GB)
+val_bits_per_byte_by_step: {500: 3.365, 1000: 3.221, 2000: 3.129, 3000: 3.079, 4000: 3.036, 4500: 3.036}
+note: Consistent improvement over the pre-fix run at every step measured (was 3.596 ->
+      3.155 at the same steps) - confirms the 500-step finding scales to 5000 steps.
+compare_against: runs/2026_09_13_train_arm_b_5000_kaggle_gpu (pre-fix, same scale)

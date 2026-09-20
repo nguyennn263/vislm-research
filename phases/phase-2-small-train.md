@@ -368,35 +368,73 @@ quả cũ (`runs/2026_09_13_train_arm_a_500_kaggle_gpu/`). Xem
    model. Đây là tín hiệu tốt cho hướng cải thiện BLT, dù cách biệt với Arm A (2.054) vẫn
    còn rất lớn ở quy mô này.
 
+## So sánh 5.000 bước / 0.3GB (rerun sau khi sửa threshold + 2 hướng cải thiện)
+Cùng quy mô với lần scale-up 5.000-bước gốc (`entropy_pretrain_steps=500` không đổi, chỉ
+threshold đổi 3.7→3.0), cộng lần đầu chạy Arm B2/D ở quy mô này. Dùng **val_loss** (đáng
+tin hơn train loss). Arm A dùng lại kết quả cũ (không đổi). Xem
+`runs/2026_09_21_train_arm_{b,c}_5000_kaggle_gpu_threshold_fix/`,
+`runs/2026_09_21_train_arm_{b2,d}_5000_kaggle_gpu/`.
+
+| bước | A (bpb) | B (sửa) | C (sửa) | B2 (cross-attn) | D (bpe-guided) |
+|---|---|---|---|---|---|
+| 500 | 1.966 | 3.365 | 3.290 | 3.280 | 3.305 |
+| 1000 | 1.733 | 3.221 | 3.167 | 3.151 | 3.139 |
+| 2000 | 1.600 | 3.129 | 3.091 | 3.050 | 3.029 |
+| 3000 | 1.536 | 3.079 | 3.059 | 2.980 | 2.979 |
+| 4000 | 1.496 | 3.036 | 3.014 | 2.910 | 2.943 |
+| 4500 | 1.485 | 3.036 | 3.014 | **2.894** | 2.944 |
+
+**Xác nhận và làm rõ thêm ở scale dài hơn (so với bảng 500-bước ở trên):**
+1. **Phát hiện "Arm B cải thiện rõ, Arm C gần như không đổi" GIỮ VỮNG xuyên suốt cả
+   5.000 bước**, không chỉ ở 500 bước đầu — Arm B: 3.596→3.155 (cũ) so 3.365→3.036 (mới)
+   tại cùng các mốc bước; Arm C: 3.292→3.016 (cũ) so 3.290→3.014 (mới, gần như y hệt).
+2. **Khoảng cách C so B gần như biến mất ở scale dài** — tỷ lệ C/B: 0.915→0.956 (TRƯỚC khi
+   sửa, có vẻ "hội tụ nhưng còn cách biệt rõ") → 0.978→**0.993** (SAU khi sửa, tại bước
+   4500 C chỉ còn tốt hơn B ~0.7%, gần như bằng nhau). Đây là bản sửa quan trọng cho kết
+   luận cũ "mồi âm tiết luôn tốt hơn entropy thuần 4-8%, không hội tụ về 0" — kết luận đó
+   dựa trên dữ liệu bị lỗi threshold; số liệu đúng cho thấy khi entropy model hoạt động
+   đúng thiết kế, lợi thế mồi âm tiết gần như triệt tiêu ở scale này.
+3. **2 hướng cải thiện mới không chỉ thắng ở 500 bước mà khoảng cách còn GIÃN RA thêm khi
+   train dài hơn** — khác với nhận định ở mục 500-bước (lúc đó B2/D/C khá gần nhau). Đến
+   bước 4500: B2 (2.894) < D (2.944) < C (3.014) < B (3.036). Arm B2 (cross-attention) đặc
+   biệt đáng chú ý — đường cải thiện của nó DỐC HƠN B/C xuyên suốt, chưa có dấu hiệu chững
+   lại, trong khi Arm D có dấu hiệu chững nhẹ sau bước 3.000-4.000.
+4. Cả 4 biến thể byte-level vẫn kém xa Arm A (1.485 ở bước 4500) — không đổi so với các
+   lần scale trước, không phụ thuộc lỗi threshold.
+
 ## Trạng thái
 Cả 3 arm gốc (A, B, C) đã viết xong, compute-matched, decoder Arm B/C đã tối ưu tốc độ
 (~6.4x ở scale debug), có checkpoint/resume/LR-schedule/eval, và đã train thật ở nhiều quy
 mô (30, 500, 5.000, 20.000 bước) trên Kaggle GPU. `entropy_threshold` từng bị hiệu chỉnh
-sai (3.7, gây patch gần-cố-định) đã được sửa (3.0) và **đã rerun ở cả 2 quy mô 30 và 500
-bước để xác nhận** — số liệu 5.000/20.000-bước ở các mục trên vẫn giữ nguyên như đã chạy
-(chưa rerun với threshold mới, xem "Còn thiếu" bên dưới). 2 hướng cải thiện mới (Arm B2 —
-cross-attention, Arm D — bpe-guided boundaries) đã train thật ở 30 và 500 bước, cả 2 đều
-cho kết quả tốt hơn Arm B/C ở quy mô 500 bước (xem mục ngay trên).
+sai (3.7, gây patch gần-cố-định) đã được sửa (3.0) và **đã rerun ở 3 quy mô 30/500/5.000
+bước để xác nhận** — số liệu 20.000-bước ở mục trước vẫn giữ nguyên như đã chạy (chưa rerun
+với threshold mới, xem "Còn thiếu" bên dưới). 2 hướng cải thiện mới (Arm B2 —
+cross-attention, Arm D — bpe-guided boundaries) đã train thật ở 30/500/5.000 bước, cả 2 đều
+nhất quán tốt hơn Arm B/C ở mọi quy mô đã thử.
 
 **Kết luận cho câu hỏi con 1.3 ở phạm vi đã thử nghiệm:**
 - **BPE (Arm A) vẫn vượt trội byte-level (mọi biến thể B/C/B2/D) rất nhiều ở quy mô nhỏ
-  này** — kết luận này KHÔNG phụ thuộc vào lỗi threshold (cắt cố định hay cắt động thì BPE
-  vẫn thắng đậm). Khuyến nghị dùng BPE ở quy mô hiện tại, byte-level chỉ đáng đầu tư tiếp
+  này, và khoảng cách không thu hẹp qua các lần scale** — kết luận này KHÔNG phụ thuộc vào
+  lỗi threshold. Khuyến nghị dùng BPE ở quy mô hiện tại, byte-level chỉ đáng đầu tư tiếp
   nếu có compute để scale MODEL SIZE.
-- **"Mồi âm tiết tốt hơn entropy thuần" — vẫn đúng nhưng lợi thế nhỏ hơn nhiều so với ước
-  tính trước khi sửa threshold** (2.5% chứ không phải 5.8%) — phần lớn chênh lệch cũ là do
-  Arm B bị lỗi cấu hình, không phải do bản thân ý tưởng mồi âm tiết yếu.
-- **2 hướng cải thiện mới (cross-attention encoder, bpe-guided boundaries) đều có tác dụng
-  thật, gần tương đương nhau, và đều tốt hơn cách làm gốc (entropy thuần lẫn mồi âm tiết)**
-  ở quy mô 500 bước — bằng chứng ban đầu ủng hộ cả 2 hướng nghiên cứu là đáng đầu tư tiếp
-  nếu muốn thu hẹp khoảng cách với BPE.
+- **"Mồi âm tiết tốt hơn entropy thuần" — SỬA LẠI đáng kể so với kết luận trước đây.** Kết
+  luận cũ (dựa trên dữ liệu bị lỗi threshold) nói lợi thế 4-8%, ổn định, không hội tụ về 0.
+  Dữ liệu đúng (đã rerun tới 5.000 bước) cho thấy lợi thế thật chỉ còn **~0.7% tại bước
+  4500, gần như triệt tiêu** — phần lớn chênh lệch quan sát trước đây là do Arm B bị lỗi
+  cấu hình, không phải do bản thân mồi âm tiết mạnh.
+- **2 hướng cải thiện mới (cross-attention encoder, bpe-guided boundaries) có tác dụng
+  thật và NHẤT QUÁN qua cả 500 và 5.000 bước, khoảng cách với B/C còn giãn thêm khi train
+  dài hơn** — đây là kết luận có căn cứ vững hơn kết luận về mồi âm tiết, vì đã xác nhận
+  qua 2 lần scale liên tiếp. Arm B2 (cross-attention) hiện là biến thể byte-level tốt nhất
+  đã thử ở quy mô 5.000 bước.
 
-Còn thiếu nếu muốn kết luận chắc chắn hơn nữa cho 1.3: (1) rerun 5.000/20.000-bước cho Arm
-B/C với threshold đã sửa (mới có 30/500 bước) để xem xu hướng "giãn ra" so Arm A và "thu
-hẹp" so C/B có còn đúng ở scale dài hơn không; (2) scale Arm B2/D lên 5.000+ bước để xem
-lợi thế của chúng có bền vững không; (3) thử tăng MODEL SIZE cho Arm B/C/B2/D (giữ
-compute-matched) thay vì chỉ tăng số bước; (4) thử LR/warmup riêng cho BLT thay vì dùng
-chung với Arm A; (5) nhiều seed hơn để chắc chắn xu hướng không phải nhiễu (mới có 1 seed
+Còn thiếu nếu muốn kết luận chắc chắn hơn nữa cho 1.3: (1) rerun 20.000-bước cho Arm B/C
+với threshold đã sửa để xem xu hướng "giãn ra so Arm A" có còn đúng, và xem C/B có tiếp tục
+gần 1.0 hay đảo chiều như từng thấy ở lần 20.000-bước cũ; (2) scale Arm B2/D lên 20.000+
+bước để xem lợi thế của chúng (đặc biệt B2, đang giãn ra) có tiếp tục hay bão hoà; (3) thử
+tăng MODEL SIZE cho Arm B/C/B2/D (giữ compute-matched) thay vì chỉ tăng số bước; (4) thử
+LR/warmup riêng cho BLT thay vì dùng chung với Arm A; (5) nhiều seed hơn để chắc chắn xu
+hướng không phải nhiễu (mới có 1 seed
 cho mỗi scale); (6) áp dụng cách detect CODE_DIR động cho các notebook Kaggle cũ hơn còn
 sót lại (train_arm_{a,b,c}_debug gốc — 2 cái B/C debug đã sửa, data_pipeline_smoke_test)
 nếu cần rerun. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
