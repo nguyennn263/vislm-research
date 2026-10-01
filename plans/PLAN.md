@@ -82,13 +82,28 @@ Nhận xét quan trọng: RQ tổng quát ở dưới gộp 7 innovation vào c�
   - *Vì sao cần 2 lượt:* nếu chỉ đo bằng 1 model, không biết độ trùng khớp phản ánh đặc tính của **ngôn ngữ tiếng Việt** hay chỉ là đặc tính riêng của **model dùng để đo**. Hai lượt cho kết quả gần nhau → kết luận về ngôn ngữ đáng tin hơn.
   - *Tiêu chí đi tiếp:* Cả 2 lượt đều cho độ trùng khớp &gt; 70% → có cơ sở "mồi" patch encoder bằng âm tiết.
 - **Câu hỏi con 1.3 — thiết kế lại thành bậc thang 3 arm cô lập biến số (không so sánh gộp):**
-  - **Biến số cố định giữa mọi arm:** cùng tập dữ liệu, cùng tổng compute (FLOPs), cùng số tham số latent transformer, cùng seed — chỉ đổi đúng 1 thứ mỗi bước.
+  - **Biến số cố định giữa mọi arm (sửa lại theo đúng cách paper BLT so sánh, Mục 4 paper):** cùng tập dữ liệu, cùng **số byte mỗi batch** (không phải cùng số "phần tử" mỗi sequence — `max_seq_len` của Arm A tính theo token, của BLT tính theo byte, phải quy đổi qua ~5.06 byte/token), cùng **FLOPs/byte** (tính cả attention, không chỉ heuristic 6N), cùng tổng số byte train, cùng seed — chỉ đổi đúng 1 thứ mỗi bước. Bỏ tiêu chí "cùng số tham số latent transformer": BPE và byte-level khác nhau về cấu trúc (bảng embedding lớn vs encoder/decoder cục bộ), nên số tham số không phải biến cần giữ cố định.
+  - *Bước 0 — điều kiện tiên quyết trước khi đọc bất kỳ kết quả 1.3 nào (đã phát hiện qua đối chiếu với code gốc, xem `phases/phase-2-small-train.md` mục "Đối chiếu với paper/repo gốc"):*
+    - **0a. Test causal tự động:** với mọi arm, logits ở vị trí p phải phụ thuộc byte ≤ p và không phụ thuộc byte > p. Bản BLT hiện tại fail (logits ở p không thấy byte p, nghĩa là đang học đoán cách 2 byte) → mọi kết quả B/B2/C/D cũ không dùng làm căn cứ.
+    - **0b. Patching phải "incremental":** ranh giới patch tại vị trí i chỉ được phụ thuộc byte ≤ i (paper gọi là $f_p(x_{<i}) = f_p(x)_{<i}$, và nói rõ BPE vi phạm điều này). Arm D cũ (ranh giới từ tokenizer PhoGPT) vi phạm → phải thay bằng một patcher dự đoán ranh giới BPE theo kiểu causal (repo gốc có sẵn mode `bpe_patcher`).
+    - **0c. Tái lập trước khi mở rộng (nguyên tắc #4 ở đầu file):** chạy chính code `facebookresearch/blt` (thu nhỏ từ `bytelatent/configs/debug.yaml`) trên cùng data FineWeb2-vi, cùng số byte. BLT tự viết (Arm B) phải ra bits/byte trong khoảng ±5% so với code gốc ở cùng config, rồi mới được dùng làm arm thí nghiệm. Nếu không đạt → lỗi nằm ở code tự viết, không phải ở ý tưởng.
   - *Arm A (baseline):* BPE + Transformer chuẩn, không đổi gì.
-  - *Arm B:* Thay tokenizer bằng BLT thuần entropy (đúng kiến trúc gốc), giữ nguyên phần còn lại → cô lập riêng hiệu ứng "chuyển sang byte-level patching," tách khỏi ý tưởng âm tiết.
-  - *Arm C:* BLT + khởi tạo ranh giới patch bằng âm tiết (chỉ thêm đúng 1 thay đổi so với Arm B) → cô lập riêng hiệu ứng "mồi âm tiết," tách khỏi hiệu ứng byte-level nói chung.
+  - *Arm B:* BLT thuần entropy, **đúng kiến trúc gốc chứ không phải bản rút gọn**, gồm:
+    - local encoder là transformer trên byte (có RoPE, attention cửa sổ trượt vượt qua ranh giới patch), cộng hash n-gram embedding;
+    - pooling bằng cross-attention, query khởi tạo bằng pooling;
+    - local decoder khởi tạo từ hidden state của encoder, cross-attention từ byte sang patch;
+    - patch đầu tiên dài 1 byte (cách "lag fix" của code gốc).
+    
+    Kích thước được thu nhỏ cho vừa compute. Arm này cô lập riêng hiệu ứng "chuyển sang byte-level patching", tách khỏi ý tưởng âm tiết.
+  - *Arm B-ablation (thay cho Arm B2 cũ):* bỏ lần lượt từng thành phần khỏi Arm B (mỗi lần bỏ đúng 1): hash n-gram, cross-attention ở decoder, cross-attention ở encoder (đổi sang pooling), monotonic so với global threshold, kích thước entropy model. Đi theo chiều **bớt từ bản đầy đủ** (giống Bảng 7–9 của paper), không phải "thêm vào bản rút gọn" như trước. Câu trả lời cần tìm: ở quy mô nhỏ, thành phần nào của BLT thực sự cần.
+  - *Arm C:* Arm B + khởi tạo ranh giới patch bằng âm tiết (chỉ thêm đúng 1 thay đổi so với Arm B) → cô lập riêng hiệu ứng "mồi âm tiết". Thêm 1 arm đối chứng **C-space** = space patching thuần (mode `space` của repo gốc, tức SpaceByte): nếu C không hơn C-space, lợi ích đến từ dấu cách chứ không phải từ việc kết hợp với entropy.
+  - *Arm D (sửa):* ranh giới kiểu BPE nhưng do một patcher causal dự đoán (mode `bpe_patcher` của repo gốc). Cấm dùng offset của tokenizer trên cả cửa sổ, vì cách đó lộ thông tin tương lai (vi phạm 0b).
+  - *Thiết kế theo đường scaling, không theo 1 điểm:* paper chỉ thấy BLT vượt BPE ở quy mô lớn (ở 1B tham số, biến thể space-patching vẫn kém Llama 3). Vì vậy so A với B ở **ít nhất 3 kích thước model** (VD ~10M / ~50M / ~150M, vừa với RTX 24GB), mỗi kích thước đều compute-matched, rồi vẽ bits/byte theo FLOPs. Câu hỏi đúng ở quy mô của mình là **"khoảng cách A–B thu hẹp hay giãn ra khi tăng compute"**, không phải "B có thắng A ở 1 điểm không".
   - *Cách đọc kết quả:* B so A cho biết byte-level patching có ích gì không (bất kể ý tưởng âm tiết); C so B cho biết riêng phần "mồi âm tiết" có cộng thêm giá trị ngoài B hay không. **Không kết luận "ý tưởng âm tiết đúng" chỉ từ so sánh C với A** — đó là lỗi nhiễu biến kinh điển.
-  - *Tiêu chí thành công cho C:* C hội tụ nhanh hơn B với cùng compute, VÀ B đã chứng minh tốt hơn A trước đó — nếu B không hơn A, việc C hơn A không chứng minh được gì về riêng ý tưởng âm tiết.
-  - *Tiêu chí dừng/pivot:* Nếu C không khác biệt đáng kể so với B (dù B đã hơn A) → bỏ phần "mồi âm tiết," dùng thẳng BLT gốc (Arm B).
+  - *Tiêu chí đi tiếp cho B:* khoảng cách bits/byte B/A thu hẹp đơn điệu qua 3 kích thước model, VÀ Arm B đã qua bước 0c. Nếu khoảng cách giãn ra ở cả 3 kích thước → kết luận "ở dải compute khả thi của Viwixtech, BPE tốt hơn", ghi lại, rồi dừng nhánh byte-level (đây là kết quả hợp lệ).
+  - *Tiêu chí thành công cho C:* C hội tụ nhanh hơn B với cùng compute, VÀ B đã đạt tiêu chí đi tiếp ở trên — nếu B không đạt, việc C hơn A không chứng minh được gì về riêng ý tưởng âm tiết.
+  - *Tiêu chí dừng/pivot:* Nếu C không khác biệt đáng kể so với B (dù B đã đạt tiêu chí) → bỏ phần "mồi âm tiết", dùng thẳng BLT gốc (Arm B).
+  - *Lưu ý pháp lý:* code và weights `facebookresearch/blt` dùng giấy phép **CC BY-NC 4.0 (phi thương mại)**. Dùng để tái lập/nghiên cứu (bước 0c) thì được, nhưng code đưa vào sản phẩm của Viwixtech phải tự viết lại, không copy, và không dùng weights `facebook/blt-*`. Cần xác nhận lại với người phụ trách pháp lý.
 
 **Tài liệu &amp; mã nguồn tham khảo:**
 

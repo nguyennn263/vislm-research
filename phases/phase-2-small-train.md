@@ -412,6 +412,11 @@ với threshold mới, xem "Còn thiếu" bên dưới). 2 hướng cải thiệ
 cross-attention, Arm D — bpe-guided boundaries) đã train thật ở 30/500/5.000 bước, cả 2 đều
 nhất quán tốt hơn Arm B/C ở mọi quy mô đã thử.
 
+> **⚠ CẬP NHẬT 2026-10-01: mọi kết luận ngay dưới đây về Arm B/B2/C/D đều BỊ HUỶ** cho đến
+> khi làm lại theo mục "Đối chiếu với paper/repo gốc" ở cuối file. Lý do chính: decoder của
+> `blt_lm.py` có lỗi lệch vị trí (đang học đoán cách 2 byte), và A với BLT không cùng số byte
+> mỗi batch. Giữ phần dưới làm lịch sử, không dùng làm căn cứ.
+
 **Kết luận cho câu hỏi con 1.3 ở phạm vi đã thử nghiệm:**
 - **BPE (Arm A) vẫn vượt trội byte-level (mọi biến thể B/C/B2/D) rất nhiều ở quy mô nhỏ
   này, và khoảng cách không thu hẹp qua các lần scale** — kết luận này KHÔNG phụ thuộc vào
@@ -438,3 +443,42 @@ hướng không phải nhiễu (mới có 1 seed
 cho mỗi scale); (6) áp dụng cách detect CODE_DIR động cho các notebook Kaggle cũ hơn còn
 sót lại (train_arm_{a,b,c}_debug gốc — 2 cái B/C debug đã sửa, data_pipeline_smoke_test)
 nếu cần rerun. 2.1/2.2 (Trụ cột 2 — backbone SSM) chưa viết code.
+
+## Đối chiếu với paper/repo gốc — sai lệch đã tìm thấy và kế hoạch làm lại 1.3
+Đã đối chiếu `vislm/backbones/models/blt_lm.py` với paper (Pagnoni et al.,
+[arXiv:2412.09871](https://arxiv.org/abs/2412.09871)) và code gốc
+[facebookresearch/blt](https://github.com/facebookresearch/blt) (commit `9774ed4`, chủ yếu
+`bytelatent/model/blt.py`, `model/local_models.py`, `data/patcher.py`,
+`configs/debug.yaml`). Bản ở đây không chỉ "rút gọn" như docstring ghi, mà khác bản gốc ở
+những điểm làm thay đổi kết quả.
+
+### Sai lệch, xếp theo mức độ ảnh hưởng
+| # | Bản ở đây | Paper / repo gốc | Ảnh hưởng |
+|---|---|---|---|
+| 1 | Decoder nhận `[latent patch trước, byte offset..offset+len-2]`, còn target là byte kế tiếp. Logits ở vị trí p **không thấy byte p** (đã kiểm bằng test: đổi byte p thì logits ở p không đổi) | Decoder nhận hidden state của encoder tại chính vị trí đó (`dec_embeds = h_encoder`), patch đầu dài 1 byte, `decoder_patch_ids` dịch đi 1 ("lag fix" trong docstring `get_blt_input`) | **Nghiêm trọng**: BLT đang học đoán cách 2 byte. Rất có thể đây là lý do chính khiến B/C kẹt ở ~3 bpb |
+| 2 | A: 512 token/sequence (~2.5KB). BLT: 512 byte/sequence. Cùng batch_size, cùng số bước | Giữ "số byte mỗi batch không đổi" giữa BLT và BPE | Mỗi bước A học ~5 lần nhiều byte hơn và có context dài hơn ~5 lần. So sánh không công bằng |
+| 3 | Embedding byte thô, không có lớp transformer trên byte, không có vị trí. Mean-pool và cả cross-attention đều không phân biệt thứ tự byte trong patch (đã kiểm: hoán 2 byte thì latent không đổi) | Local encoder là transformer trên byte (RoPE, cửa sổ trượt 512 byte **vượt ranh giới patch**), cộng hash n-gram embedding (3 hàm hash, vocab 50K–500K), rồi mới pooling bằng cross-attention | Encoder chỉ thấy "túi byte". Với tiếng Việt, một ký tự có dấu chiếm nhiều byte UTF-8 nên thứ tự byte rất quan trọng |
+| 4 | Decoder chỉ attend trong nội bộ patch. Latent vào qua đúng 1 token chèn đầu | Decoder attend qua cửa sổ trượt trên mọi byte trước đó. Cross-attention byte→patch ở mọi lớp (`cross_attn_all_layers_decoder`) | Đầu mỗi patch, decoder mất hết ngữ cảnh byte của patch trước |
+| 5 | Arm D lấy offset của tokenizer PhoGPT trên **cả cửa sổ** | Paper yêu cầu patching incremental và nói rõ BPE vi phạm. Repo có mode `bpe_patcher` (model causal dự đoán ranh giới) | Ranh giới lộ thông tin tương lai. Lợi thế của D chưa tin được |
+| 6 | Entropy model ~0.8M tham số, 500 bước, chỉ dùng ngưỡng toàn cục, cắt cứng ở `max_patch_len=16` | Entropy model 100M (repo: 768d/14 lớp, cửa sổ trượt 512), lợi ích còn tăng tới ~50M. Có `monotonicity` / `threshold_add`. `max_patch_length` mặc định là None | Patching thô và nhạy với ngưỡng (đã dính lỗi 3.7) |
+| 7 | FLOPs = 6N, bỏ qua attention và entropy model. Độ dài patch đo trên 1 cửa sổ 512 byte | `get_num_flop_per_token` = 6N + FLOPs attention, tính riêng cho encoder, global và decoder | Compute-match thực chất chỉ là ước lượng rất thô |
+| 8 | LayerNorm, GELU, position embedding học được | RMSNorm, SwiGLU, RoPE | Nhỏ, nhưng là thêm 1 biến lệch so với cấu hình gốc |
+
+### Kế hoạch làm lại (theo thứ tự, mỗi bước là 1 cổng)
+1. **Sửa và khoá đúng đắn**
+   - Thêm `tests/test_blt_causal.py`: logits ở p phụ thuộc byte ≤ p, không phụ thuộc byte > p; patching incremental (patch tiền tố = tiền tố của patch toàn chuỗi). Chạy cho mọi arm, kể cả A.
+   - Sửa lỗi #1 theo cách "lag fix" của repo gốc.
+   - Sửa `generate.py` (đang dính cùng lỗi).
+2. **Cân lại so sánh**
+   - BLT `max_seq_len` = 512 × 5.06 ≈ 2560 byte (hoặc giảm A xuống ~101 token), sao cho số byte mỗi batch bằng nhau.
+   - FLOPs tính theo công thức của repo gốc (có attention); chi phí entropy model báo cáo riêng.
+   - Độ dài patch trung bình đo trên ≥ 100 cửa sổ held-out.
+3. **Tái lập bằng code gốc (bước 0c ở PLAN.md)**
+   - Chạy `facebookresearch/blt` thu nhỏ từ `configs/debug.yaml` trên FineWeb2-vi, máy RTX 24GB (code cần flex-attention/xformers, P100 của Kaggle có thể không chạy được).
+   - Kết quả này là mốc chuẩn cho Arm B.
+4. **Viết lại Arm B đủ thành phần** (lỗi #3, #4, #6, #8), rồi so với mốc ở bước 3: bits/byte phải trong khoảng ±5%.
+5. **Ablation bớt dần từ Arm B** (thay cho B2): bỏ hash n-gram, bỏ cross-attention ở decoder, bỏ cross-attention ở encoder, global so với monotonic, entropy model 1M/10M/50M.
+6. **Arm C, C-space, D (`bpe_patcher` causal)**: mỗi arm chỉ khác Arm B đúng 1 biến.
+7. **Đường scaling**: A và B ở 3 kích thước model, compute-matched, vẽ bits/byte theo FLOPs. Tiêu chí go/no-go xem PLAN.md mục 1.3.
+
+**Lưu ý giấy phép:** repo và weights `facebook/blt-*` dùng **CC BY-NC 4.0** (phi thương mại). Chỉ dùng để tái lập/nghiên cứu (bước 3). Code đưa vào sản phẩm phải tự viết lại.

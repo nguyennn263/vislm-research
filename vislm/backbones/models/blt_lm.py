@@ -15,6 +15,11 @@ simplifications now made optional (see phases/phase-2-small-train.md for why):
 Still loops over the batch dim in Python (one sequence at a time - patch counts differ
 per sequence); the local encoder and decoder are each batched across all patches within
 a sequence (one transformer call per sequence, not one per patch).
+
+Decoder alignment follows the official repo's "lag fix" (see forward()). An earlier
+version fed the decoder [previous latent, bytes offset..offset+len-2], so logits at byte
+p never saw byte p while being trained to predict byte p+1 - every Arm B/B2/C/D result
+before this fix was a skip-one-byte task. tests/test_blt_causal.py guards against it.
 """
 import torch
 import torch.nn as nn
@@ -27,17 +32,6 @@ from vislm.backbones.modules.transformer_block import (
     TransformerBlock,
     count_params,
 )
-
-
-def build_causal_padding_mask(lengths: torch.Tensor, max_len: int) -> torch.Tensor:
-    """lengths: [n] valid length per row. Returns bool mask [n, 1, max_len, max_len],
-    True = attend: causal AND key position is within that row's valid length."""
-    device = lengths.device
-    idx = torch.arange(max_len, device=device)
-    valid_key = idx.unsqueeze(0) < lengths.unsqueeze(1)  # [n, max_len]
-    causal = idx.unsqueeze(0) <= idx.unsqueeze(1)  # [max_len, max_len], True where key<=query
-    mask = causal.unsqueeze(0) & valid_key.unsqueeze(1)  # [n, max_len, max_len]
-    return mask.unsqueeze(1)  # [n, 1, max_len, max_len]
 
 
 def build_padding_mask(lengths: torch.Tensor, max_len: int) -> torch.Tensor:
@@ -179,28 +173,26 @@ class BLTLanguageModel(nn.Module):
                 x = block(x)
             latent_out = self.latent_ln(x)[0]  # [n_patches, d_model]
 
-            # local decoder: patch i's bytes are predicted from patch (i-1)'s latent
-            # output (causal across patches) + autoregressively within the patch.
-            # Batched across all patches in this sequence via padding + a combined
-            # causal/padding mask, instead of one transformer call per patch.
-            d_model = emb.size(-1)
-            max_len = max(length for _, length in patch_spans)
-            lengths_t = torch.tensor([length for _, length in patch_spans], device=device)
-            dec_in = torch.zeros(n_patches, max_len, d_model, device=device)
-            for pi, (offset, length) in enumerate(patch_spans):
-                prev_latent = latent_out[pi - 1] if pi > 0 else torch.zeros_like(latent_out[0])
-                in_bytes = emb[offset : offset + length - 1]
-                dec_in[pi, :length] = torch.cat([prev_latent.unsqueeze(0), in_bytes], dim=0)
+            # local decoder - same alignment as facebookresearch/blt's "lag fix"
+            # (get_blt_input / decoder_patch_ids_from_lengths): logits at byte p predict
+            # byte p+1, so the decoder input at p is byte p itself plus the latent of the
+            # LAST patch that has fully ended at or before p (latent k only summarises
+            # bytes <= end of patch k, so using it from that position on is causal). Bytes
+            # before the first patch ends get no latent. Positions sharing one latent form a
+            # decoder group; attention is causal within the group, one call per sequence.
+            patch_ends = torch.tensor(lengths, device=device).cumsum(0) - 1
+            pos_t = torch.arange(t, device=device)
+            group = torch.searchsorted(patch_ends, pos_t, right=True)  # 0 = no patch ended yet
+            latent_by_group = torch.cat([torch.zeros_like(latent_out[:1]), latent_out], dim=0)
+            dec_in = (emb + latent_by_group[group]).unsqueeze(0)  # [1, t, d_model]
 
-            attn_mask = build_causal_padding_mask(lengths_t, max_len)
+            same_group = group.unsqueeze(0) == group.unsqueeze(1)
+            causal = pos_t.unsqueeze(0) <= pos_t.unsqueeze(1)
+            attn_mask = (same_group & causal)[None, None]  # [1, 1, t, t], True = attend
             seq = dec_in
             for block in self.decoder_blocks:
                 seq = block(seq, attn_mask=attn_mask)
-            seq = self.decoder_ln(seq)
-            patch_logits = self.head(seq)  # [n_patches, max_len, vocab]
-
-            for pi, (offset, length) in enumerate(patch_spans):
-                all_logits[bi, offset : offset + length] = patch_logits[pi, :length]
+            all_logits[bi] = self.head(self.decoder_ln(seq))[0]
 
         loss = None
         if targets is not None:
