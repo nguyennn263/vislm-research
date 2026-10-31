@@ -234,3 +234,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# BLT-on-Qwen env (Python 3.11 + transformers 5.x), see requirements-blt-qwen.txt
+.venv-qwen/
+.DS_Store

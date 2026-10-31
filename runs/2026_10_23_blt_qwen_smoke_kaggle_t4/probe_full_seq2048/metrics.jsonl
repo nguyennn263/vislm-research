@@ -1,0 +1,9 @@
+{"event": "patching", "mode": "entropy", "threshold": 2.8180127143859863}
+{"event": "start", "task": "blt_qwen", "params": 698144064, "trainable_params": 698144064, "precision": "fp16", "profile": "kaggle_t4", "device": "cuda", "gpu": "Tesla T4", "gpu_mem_gb": 15.6, "n_gpus": 2, "torch": "2.11.0+cu128"}
+{"step": 0, "loss": 6.034889221191406, "bpb": 8.7065047517271, "lr": 0.0004, "grad_norm": 9.802684783935547, "elapsed_s": 5.63, "mean_patch_bytes": 4.743, "peak_mem_gb": 11.27}
+{"step": 1, "loss": 6.139172554016113, "bpb": 8.856953798840678, "lr": 0.0004, "grad_norm": Infinity, "elapsed_s": 14.99, "mean_patch_bytes": 2.822, "peak_mem_gb": 14.54}
+{"step": 2, "loss": 6.351052284240723, "bpb": 9.162631634900615, "lr": 0.00034727922061357855, "grad_norm": Infinity, "elapsed_s": 18.34, "mean_patch_bytes": 5.059, "peak_mem_gb": 14.54}
+{"step": 3, "loss": 6.407402038574219, "bpb": 9.24392714603286, "lr": 0.00022000000000000003, "grad_norm": 24.850988388061523, "elapsed_s": 23.18, "mean_patch_bytes": 4.165, "peak_mem_gb": 14.54}
+{"step": 4, "loss": 4.4656782150268555, "bpb": 6.442611815025122, "lr": 9.272077938642147e-05, "grad_norm": 11.81989574432373, "elapsed_s": 27.58, "mean_patch_bytes": 4.216, "peak_mem_gb": 14.54}
+{"event": "final_eval", "step": 5, "val_loss": 4.282190561294556, "val_bpb": 6.177895086921183}
+{"event": "done", "steps": 5, "elapsed_s": 30.5, "s_per_step": 6.098}

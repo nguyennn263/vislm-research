@@ -1,0 +1,220 @@
+{
+ "versions": [
+  "2.11.0+cu128",
+  "5.20.2",
+  "True"
+ ],
+ "commands": {
+  "pip_transformers": {
+   "rc": 0,
+   "seconds": 15.3
+  },
+  "pip_fla": {
+   "rc": 0,
+   "seconds": 2.1
+  },
+  "fla_check": {
+   "rc": 0,
+   "seconds": 243.9
+  },
+  "data": {
+   "rc": 0,
+   "seconds": 4.1
+  },
+  "pytest": {
+   "rc": 1,
+   "seconds": 25.8,
+   "tail": [
+    "/usr/local/lib/python3.13/dist-packages/triton/backends/nvidia/driver.py:713: ValueError",
+    "=============================== warnings summary ===============================",
+    ": 14 warnings",
+    "  /usr/local/lib/python3.13/dist-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.",
+    "    warnings.warn(",
+    "",
+    "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+    "=========================== short test summary info ============================",
+    "FAILED ::test_forward_shapes_and_loss - ValueError: Pointer argument (at 0) c...",
+    "FAILED ::test_causal_and_sees_current_byte - ValueError: Pointer argument (at...",
+    "FAILED ::test_decoder_reads_the_patch_that_just_ended - ValueError: Pointer a...",
+    "FAILED ::test_batch_rows_with_different_patch_counts - ValueError: Pointer ar...",
+    "FAILED ::test_double_residual_flag_changes_output - ValueError: Pointer argum...",
+    "FAILED ::test_overfit_one_batch - ValueError: Pointer argument (at 0) cannot ...",
+    "6 failed, 8 passed, 14 warnings in 20.55s"
+   ]
+  },
+  "entropy_lm_smoke": {
+   "rc": 0,
+   "seconds": 28.6
+  },
+  "blt_ws_fp16": {
+   "rc": 0,
+   "seconds": 411.0
+  },
+  "blt_ws_fp16_resume": {
+   "rc": 0,
+   "seconds": 54.9
+  },
+  "blt_ws_fp32": {
+   "rc": 0,
+   "seconds": 351.7
+  },
+  "blt_entropy": {
+   "rc": 0,
+   "seconds": 105.5
+  },
+  "probe_kaggle_t4": {
+   "rc": 0,
+   "seconds": 92.0
+  },
+  "probe_full_seq2048": {
+   "rc": 0,
+   "seconds": 52.5
+  }
+ },
+ "runs": {
+  "blt_entropy": {
+   "mode": "entropy",
+   "threshold": 3.0099661350250244,
+   "task": "blt_qwen",
+   "params": 698144064,
+   "trainable_params": 698144064,
+   "precision": "fp16",
+   "profile": "kaggle_smoke",
+   "device": "cuda",
+   "gpu": "Tesla T4",
+   "gpu_mem_gb": 15.6,
+   "n_gpus": 2,
+   "torch": "2.11.0+cu128",
+   "step": 30,
+   "val_loss": 2.6197250485420227,
+   "val_bpb": 3.779464336024175,
+   "steps": 30,
+   "elapsed_s": 83.5,
+   "s_per_step": 2.783,
+   "first_bpb": 8.734,
+   "last_bpb": 3.539,
+   "n_steps": 30,
+   "peak_mem_gb": 11.79,
+   "mean_patch_bytes": 4.807
+  },
+  "blt_ws_fp16": {
+   "task": "blt_qwen",
+   "params": 698144064,
+   "trainable_params": 698144064,
+   "precision": "fp16",
+   "profile": "kaggle_smoke",
+   "device": "cuda",
+   "gpu": "Tesla T4",
+   "gpu_mem_gb": 15.6,
+   "n_gpus": 2,
+   "torch": "2.11.0+cu128",
+   "step": 40,
+   "val_loss": 2.465968430042267,
+   "val_bpb": 3.557640425010721,
+   "steps": 40,
+   "elapsed_s": 23.5,
+   "s_per_step": 2.351,
+   "first_bpb": 8.731,
+   "last_bpb": 3.182,
+   "n_steps": 40,
+   "peak_mem_gb": 11.31,
+   "mean_patch_bytes": 5.891
+  },
+  "blt_ws_fp32": {
+   "task": "blt_qwen",
+   "params": 698144064,
+   "trainable_params": 698144064,
+   "precision": "fp32",
+   "profile": "kaggle_smoke",
+   "device": "cuda",
+   "gpu": "Tesla T4",
+   "gpu_mem_gb": 15.6,
+   "n_gpus": 2,
+   "torch": "2.11.0+cu128",
+   "step": 30,
+   "val_loss": 2.6019318103790283,
+   "val_bpb": 3.753794119565067,
+   "steps": 30,
+   "elapsed_s": 330.3,
+   "s_per_step": 11.011,
+   "first_bpb": 8.731,
+   "last_bpb": 3.511,
+   "n_steps": 30,
+   "peak_mem_gb": 11.27,
+   "mean_patch_bytes": 5.726
+  },
+  "entropy_lm_smoke": {
+   "task": "entropy_lm",
+   "params": 3543296,
+   "trainable_params": 3543296,
+   "precision": "fp16",
+   "profile": "kaggle_smoke",
+   "device": "cuda",
+   "gpu": "Tesla T4",
+   "gpu_mem_gb": 15.6,
+   "n_gpus": 2,
+   "torch": "2.11.0+cu128",
+   "step": 200,
+   "val_loss": 1.642275619506836,
+   "val_bpb": 2.3693028920353627,
+   "steps": 200,
+   "elapsed_s": 20.5,
+   "s_per_step": 0.102,
+   "first_bpb": 8.74,
+   "last_bpb": 2.438,
+   "n_steps": 200,
+   "peak_mem_gb": 1.12,
+   "mean_patch_bytes": null
+  },
+  "probe_full_seq2048": {
+   "mode": "entropy",
+   "threshold": 2.8180127143859863,
+   "task": "blt_qwen",
+   "params": 698144064,
+   "trainable_params": 698144064,
+   "precision": "fp16",
+   "profile": "kaggle_t4",
+   "device": "cuda",
+   "gpu": "Tesla T4",
+   "gpu_mem_gb": 15.6,
+   "n_gpus": 2,
+   "torch": "2.11.0+cu128",
+   "step": 5,
+   "val_loss": 4.282190561294556,
+   "val_bpb": 6.177895086921183,
+   "steps": 5,
+   "elapsed_s": 30.5,
+   "s_per_step": 6.098,
+   "first_bpb": 8.707,
+   "last_bpb": 6.443,
+   "n_steps": 5,
+   "peak_mem_gb": 14.54,
+   "mean_patch_bytes": 4.216
+  },
+  "probe_kaggle_t4": {
+   "mode": "entropy",
+   "threshold": 2.8180127143859863,
+   "task": "blt_qwen",
+   "params": 698144064,
+   "trainable_params": 200030720,
+   "precision": "fp16",
+   "profile": "kaggle_t4",
+   "device": "cuda",
+   "gpu": "Tesla T4",
+   "gpu_mem_gb": 15.6,
+   "n_gpus": 2,
+   "torch": "2.11.0+cu128",
+   "step": 10,
+   "val_loss": 3.657411515712738,
+   "val_bpb": 5.276529456208954,
+   "steps": 10,
+   "elapsed_s": 69.8,
+   "s_per_step": 6.985,
+   "first_bpb": 8.707,
+   "last_bpb": 5.36,
+   "n_steps": 10,
+   "peak_mem_gb": 9.53,
+   "mean_patch_bytes": 4.406
+  }
+ }
+}

@@ -1,0 +1,55 @@
+task: blt_qwen
+dataset: data/prepared/fw2_2k
+cache_dir: null
+run_dir: runs/2k_blt_qwen
+seed: 42
+resume_from: null
+model:
+  qwen_name_or_path: Qwen/Qwen3.5-0.8B-Base
+  dim_local: 512
+  n_layers_encoder: 1
+  n_layers_decoder: 9
+  n_heads_local: 8
+  cross_attn_nheads: 8
+  cross_attn_k: 2
+  cross_attn_all_layers_encoder: false
+  cross_attn_all_layers_decoder: true
+  local_attention_window: 512
+  hash_ngram_sizes:
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  hash_vocab: 100002
+  hash_funcs: 1
+patching:
+  mode: entropy
+  entropy_ckpt: runs/2k_entropy_lm/entropy_lm.pt
+  threshold: null
+  target_mean_patch_bytes: 4.5
+  monotonicity: false
+  max_patch_length: null
+train:
+  precision: auto
+  seq_len: 4096
+  batch_size: 4
+  grad_accum: 1
+  lr: 0.0004
+  lr_global: 3.0e-05
+  freeze_global: false
+  grad_checkpointing: true
+  min_lr_ratio: 0.1
+  warmup_steps: 20
+  weight_decay: 0.1
+  grad_clip: 1.0
+  max_steps: 200
+  max_hours: 0
+  val_fraction: 0.01
+  eval_every: 50
+  eval_batches: 5
+  save_every: 0
+  log_every: 10
+  save_final: false
+profile: rtx24gb

@@ -1,0 +1,16 @@
+{
+  "id": "nguyennn263/vislm-blt-qwen-smoke",
+  "title": "vislm-blt-qwen-smoke",
+  "code_file": "vislm-blt-qwen-smoke.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "nguyennn263/vislm-research-code"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

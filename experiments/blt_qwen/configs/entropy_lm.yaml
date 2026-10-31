@@ -1,0 +1,47 @@
+# Byte entropy model for BLT-on-Qwen entropy patching (blt_qwen35_08b.yaml, patching.mode=entropy).
+# Base = the official BLT entropy model shape (facebookresearch/blt configs/entropy_model.yaml:
+# 768 dim, 14 layers, 12 heads, sliding window 512, vocab 260, lr 4e-4, lr_min_ratio 0.1),
+# trained on Vietnamese bytes instead of their English-heavy mix.
+#   python -m vislm.train_blt_qwen experiments/blt_qwen/configs/entropy_lm.yaml profile=rtx24gb
+task: entropy_lm
+dataset: data/prepared/fineweb2_vi
+cache_dir: null          # where the uint16 byte cache goes (default: next to the shards)
+run_dir: runs/blt_qwen_entropy_lm
+seed: 42
+resume_from: null
+entropy_model:
+  dim: 768
+  n_layers: 14
+  n_heads: 12
+  sliding_window: 512
+train:
+  precision: auto        # bf16 on Ampere+, fp16 on T4, fp32 on CPU
+  seq_len: 8192
+  batch_size: 8
+  grad_accum: 1
+  lr: 0.0004
+  min_lr_ratio: 0.1
+  warmup_steps: 1000
+  weight_decay: 0.1
+  grad_clip: 1.0
+  max_steps: 100000
+  max_hours: 0           # 0 = no wall-clock limit
+  val_fraction: 0.01
+  eval_every: 1000
+  eval_batches: 20
+  save_every: 1000
+  log_every: 50
+
+profiles:
+  # pipeline check only: tiny model, a few hundred steps
+  kaggle_smoke:
+    entropy_model: {dim: 256, n_layers: 4, n_heads: 4, sliding_window: 512}
+    train: {seq_len: 1024, batch_size: 16, warmup_steps: 20, max_steps: 200,
+            eval_every: 100, eval_batches: 5, save_every: 100, log_every: 20}
+  # Kaggle T4 16GB, one 12h session; resume_from=... to continue in the next one
+  # (bs 4 x accum 4 = 32k bytes/step, ~100M params fits a 16GB T4; max_hours leaves room for setup + final eval in 12h)
+  kaggle_t4:
+    train: {seq_len: 2048, batch_size: 4, grad_accum: 4, warmup_steps: 500, max_steps: 20000,
+            eval_every: 1000, save_every: 500, max_hours: 10.5}
+  rtx24gb:
+    train: {seq_len: 8192, batch_size: 8}

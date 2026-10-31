@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Repackage vislm/, experiments/pillar1_patch_encoder/configs/, setup/ into the Kaggle
+# Repackage vislm/, experiments/{pillar1_patch_encoder/configs,blt_qwen}/, setup/, tests/ into the Kaggle
 # Dataset that Kaggle training kernels mount (see phases/phase-2-small-train.md). Run
 # this after any change to vislm/ before pushing a Kaggle training kernel.
 set -euo pipefail
@@ -10,7 +10,11 @@ trap 'rm -rf "$EXPORT_DIR"' EXIT
 cp -R vislm "$EXPORT_DIR/"
 cp -R experiments/pillar1_patch_encoder/configs "$EXPORT_DIR/pillar1_configs"
 cp -R setup "$EXPORT_DIR/"
-cp requirements.txt requirements-train.txt "$EXPORT_DIR/"
+cp requirements.txt requirements-train.txt requirements-blt-qwen.txt "$EXPORT_DIR/"
+# BLT-on-Qwen testbed: configs at their repo-relative path + tests (run in the smoke kernel)
+mkdir -p "$EXPORT_DIR/experiments"
+cp -R experiments/blt_qwen "$EXPORT_DIR/experiments/"
+cp -R tests "$EXPORT_DIR/"
 find "$EXPORT_DIR" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 cat > "$EXPORT_DIR/dataset-metadata.json" << 'EOF'

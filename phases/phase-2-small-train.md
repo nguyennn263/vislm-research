@@ -478,7 +478,7 @@ những điểm làm thay đổi kết quả.
    - Kết quả này là mốc chuẩn cho Arm B.
 4. **Viết lại Arm B đủ thành phần** (lỗi #3, #4, #6, #8), rồi so với mốc ở bước 3: bits/byte phải trong khoảng ±5%.
 5. **Ablation bớt dần từ Arm B** (thay cho B2): bỏ hash n-gram, bỏ cross-attention ở decoder, bỏ cross-attention ở encoder, global so với monotonic, entropy model 1M/10M/50M.
-6. **Arm C, C-space, D (`bpe_patcher` causal)**: mỗi arm chỉ khác Arm B đúng 1 biến.
+6. **Arm C, C-space, D (`bpe_patcher` causal)**: mỗi arm chỉ khác Arm B đúng 1 biến. C-space phải cắt theo dấu cách thật, không dùng nguyên mode `space` của repo gốc (mode đó cắt giữa ký tự có dấu, xem PLAN.md mục 1.3).
 7. **Đường scaling**: A và B ở 3 kích thước model, compute-matched, vẽ bits/byte theo FLOPs. Tiêu chí go/no-go xem PLAN.md mục 1.3.
 
 **Lưu ý giấy phép:** repo và weights `facebook/blt-*` dùng **CC BY-NC 4.0** (phi thương mại). Chỉ dùng để tái lập/nghiên cứu (bước 3). Code đưa vào sản phẩm phải tự viết lại.

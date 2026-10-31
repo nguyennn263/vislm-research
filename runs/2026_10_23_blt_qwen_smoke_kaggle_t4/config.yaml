@@ -1,0 +1,18 @@
+phase: blt-qwen-testbed
+purpose: First Kaggle run of vislm/train_blt_qwen.py with the real Qwen3.5-0.8B-Base body -
+         pipeline smoke test (30-40 steps per run), not a result. Checks fp16 vs fp32, resume,
+         whitespace vs entropy patching, and memory of the kaggle_t4 / unfrozen profiles.
+compute: Kaggle 2x Tesla T4 (1 used), torch 2.11.0+cu128, transformers 5.20.2, flash-linear-attention on
+kernel: nguyennn263/vislm-blt-qwen-smoke
+kernel_version: 2   # v1 hung 6h in the old `datasets` streaming download -> parquet range reads + step timeouts
+data: FineWeb-2 vie_Latn, first 0.05GB of 000_00000.parquet
+results:
+  pipeline: every train run rc=0; pytest 8/14 passed - the 6 model tests ran on CPU tensors into
+            fla's Triton kernels (test harness issue). Fixed by running the tests on CUDA:
+            kernel nguyennn263/vislm-blt-qwen-tests v1 -> 14/14 passed on T4 incl. overfit
+  fp16_vs_fp32: same curve (bpb 3.519 vs 3.511 at step 29), no non-finite loss; fp16 no faster at this tiny shape
+  resume: blt_ws_fp16 resumed at step 30 -> 39, steps continuous
+  entropy_patching: threshold calibrated 3.01 -> 4.81 bytes/patch (target 4.5); tiny 200-step entropy LM
+  first_step: ~250s (Triton compile/autotune of the fla kernels), later runs ~5s
+  steady_state: seq 1024 bs4 ~2.2 s/step; seq 2048 bs4 frozen Qwen ~3.7 s/step, 9.5GB peak;
+                seq 2048 bs4 everything trained (hash 50002) ~4.2 s/step, 14.5GB peak (fits a T4, tight)

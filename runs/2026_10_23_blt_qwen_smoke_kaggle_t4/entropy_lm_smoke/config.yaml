@@ -1,0 +1,28 @@
+task: entropy_lm
+dataset: /kaggle/working/data/fineweb2_vi
+cache_dir: null
+run_dir: /kaggle/working/runs/entropy_lm_smoke
+seed: 42
+resume_from: null
+entropy_model:
+  dim: 256
+  n_layers: 4
+  n_heads: 4
+  sliding_window: 512
+train:
+  precision: auto
+  seq_len: 1024
+  batch_size: 16
+  grad_accum: 1
+  lr: 0.0004
+  min_lr_ratio: 0.1
+  warmup_steps: 20
+  weight_decay: 0.1
+  grad_clip: 1.0
+  max_steps: 200
+  val_fraction: 0.01
+  eval_every: 100
+  eval_batches: 5
+  save_every: 100
+  log_every: 20
+profile: kaggle_smoke

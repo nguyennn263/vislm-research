@@ -1,0 +1,13 @@
+# BLT-on-Qwen testbed (vislm/backbones/models/blt_qwen.py). Qwen3.5 needs transformers 5.x,
+# which needs Python >= 3.10, so this lives in its own env:
+#   uv venv .venv-qwen --python 3.11 && uv pip install --python .venv-qwen/bin/python -r requirements-blt-qwen.txt
+# Tested locally with transformers 5.20.1 + torch 2.14.1 (CPU, forward-only tests).
+# On the GPU box also install the Gated DeltaNet kernels, otherwise the 18 linear-attention
+# layers run the slow PyTorch reference path:  flash-linear-attention  causal-conv1d
+torch
+transformers>=5.20.1
+safetensors
+accelerate
+numpy
+pyyaml
+pytest
